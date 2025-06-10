@@ -42,10 +42,7 @@ jobs:
       - name: Check for Docker image changes
         id: check_changes
         run: |
-          # Get a list of modified files
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
-
-          # Check if the files affecting the Docker image have changed
           if echo "$CHANGED_FILES" | grep -q -E 'Dockerfile|requirements.txt|api/|models/'; then
             echo "docker_changes=true" >> $GITHUB_OUTPUT
           else
@@ -79,37 +76,51 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             REMOTE_DIR="~/api-sof-project"
-
-            # Create the directory if it doesn't exist
             mkdir -p "$REMOTE_DIR"
             cd "$REMOTE_DIR"
 
-            # Attempt to pull or clone
-            if [ -d ".git" ]; then
-              echo "Repository already exists, attempting to pull changes..."
-              if ! git pull origin main; then
-                echo "Git pull failed. Attempting to reset and re-pull..."
-                git reset --hard
-                git clean -fdx
-                if ! git pull origin main; then
-                  echo "Re-pull failed. Deleting and re-cloning..."
-                  cd ~ # Go up one level to delete the project directory safely
-                  rm -rf "$REMOTE_DIR"
-                  git clone https://github.com/alinacharon/stackoverflow-tag-predictor.git "$REMOTE_DIR" # REPLACE WITH YOUR ACTUAL REPO URL
-                  cd "$REMOTE_DIR"
-                fi
-              fi
-            else
-              echo "Repository does not exist, cloning..."
-              git clone https://github.com/alinacharon/stackoverflow-tag-predictor.git . # REPLACE WITH YOUR ACTUAL REPO URL
+            # Disk space analysis
+            echo "=== Disk Space Analysis ==="
+            df -h
+            echo "=== Docker Disk Usage ==="
+            docker system df -v
+            echo "=== Python Package Sizes ==="
+            pip list --format=json | jq -r '.[] | "\(.name): \(.size) bytes"'
+
+            # Docker Cleanup
+            docker system prune -af --volumes
+            docker builder prune -af
+
+            # Container stop and removal
+            if [ "$(docker ps -q)" ]; then
+              docker stop $(docker ps -q)
+            fi
+            if [ "$(docker ps -aq)" ]; then
+              docker rm $(docker ps -aq)
             fi
 
-            docker stop $(docker ps -q) || true
-            docker rm $(docker ps -aq) || true
+            # Repository cloning
+            if [ -d ".git" ]; then
+              git reset --hard
+              git clean -fdx
+              git pull origin main
+            else
+              git clone https://github.com/alinacharon/stackoverflow-tag-predictor.git .
+            fi
 
-            docker build -t tag-predictor .
+            # Build Docker image with size analysis
+            echo "=== Building Docker Image ==="
+            docker build --no-cache --pull -t tag-predictor .
+            echo "=== Final Image Size ==="
+            docker images tag-predictor --format "{{.Size}}"
 
+            # Run container with optimized settings
             docker run -d \
+              --restart unless-stopped \
+              --memory=512m \
+              --memory-swap=1g \
+              --memory-reservation=256m \
+              --cpus=0.5 \
               -p 3000:3000 \
               -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
               -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
@@ -117,6 +128,12 @@ jobs:
               -e AWS_ENDPOINT_URL="${{ secrets.AWS_ENDPOINT_URL }}" \
               -e AWS_BUCKET_NAME="${{ secrets.AWS_BUCKET_NAME }}" \
               tag-predictor
+
+            # Final disk space check
+            echo "=== Final Disk Space Usage ==="
+            df -h
+            echo "=== Final Docker Disk Usage ==="
+            docker system df -v
 
       - name: Wait for server to be ready
         if: github.ref == 'refs/heads/main'

@@ -1,7 +1,7 @@
-# image python
-FROM python:3.10-slim
+# Use multi-stage build
+FROM python:3.10-slim as builder
 
-# system dependency
+# Install only necessary system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
@@ -10,22 +10,39 @@ RUN apt-get update && apt-get install -y \
     libomp-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# working direction
+# Working directory
 WORKDIR /app
 
-# Copy all the code first
-COPY . .
+# Copy only dependency files
+COPY requirements.txt .
 
-# Set python dependency
+# Install dependencies in virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Loading nltk data
+# Download NLTK data
 RUN python -c "import nltk; \
     nltk.download('punkt'); \
     nltk.download('averaged_perceptron_tagger'); \
     nltk.download('wordnet'); \
     nltk.download('stopwords'); \
     nltk.download('averaged_perceptron_tagger_eng')"
+
+# Final stage
+FROM python:3.10-slim
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Working directory
+WORKDIR /app
+
+# Copy only necessary files
+COPY api/ api/
+COPY models/ models/
+COPY .env .
 
 # Create logs directory
 RUN mkdir -p logs
@@ -38,5 +55,5 @@ ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 ENV AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
 ENV AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
 
-# uvicorn launch with host 0.0.0.0 to allow external connections
+# Run uvicorn
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000", "--reload"]
