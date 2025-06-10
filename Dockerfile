@@ -56,5 +56,9 @@ ENV AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
 # Pre-download USE model
 RUN python -c "import tensorflow_hub as hub; hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')"
 
+# Add healthcheck
+HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
 # Run uvicorn with optimized settings
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000", "--workers", "1", "--limit-concurrency", "100", "--timeout-keep-alive", "30"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000", "--workers", "1", "--limit-concurrency", "100", "--timeout-keep-alive", "30", "--log-level", "info"]

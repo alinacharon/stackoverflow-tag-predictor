@@ -131,7 +131,26 @@ jobs:
               -e AWS_BUCKET_NAME="${{ secrets.AWS_BUCKET_NAME }}" \
               -e PYTHONUNBUFFERED=1 \
               -e PYTHONDONTWRITEBYTECODE=1 \
+              -e MODEL_LOAD_TIMEOUT=300 \
               tag-predictor
+
+            # Wait for container to be healthy
+            echo "Waiting for container to be healthy..."
+            timeout=300
+            while [ $timeout -gt 0 ]; do
+              if docker ps --filter "name=tag-predictor" --format "{{.Status}}" | grep -q "healthy"; then
+                echo "Container is healthy!"
+                break
+              fi
+              sleep 5
+              timeout=$((timeout-5))
+            done
+
+            if [ $timeout -le 0 ]; then
+              echo "Container failed to become healthy in time"
+              docker logs $(docker ps -q --filter "name=tag-predictor")
+              exit 1
+            fi
 
             # Final disk space check
             echo "=== Final Disk Space Usage ==="
@@ -143,13 +162,13 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           echo "Waiting for server to be ready..."
-          for i in {1..12}; do
-            if curl -s http://${{ secrets.EC2_HOST }}:3000/health > /dev/null; then
+          for i in {1..6}; do
+            if curl -s -f http://${{ secrets.EC2_HOST }}:3000/health > /dev/null; then
               echo "Server is ready!"
               exit 0
             fi
             echo "Attempt $i: Server not ready yet..."
-            sleep 5
+            sleep 10
           done
           echo "Server failed to start in time"
           exit 1
