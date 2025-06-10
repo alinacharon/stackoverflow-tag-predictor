@@ -221,5 +221,19 @@ def predict(question: Question):
 
 @app.get("/health")
 async def health_check():
-    logger.info("Health check called")
-    return {"status": "healthy"}
+    """Health check endpoint"""
+    try:
+        if model is None or mlb is None or use_model is None:
+            return {"status": "error", "message": "Models not loaded"}
+        try:
+            s3_client.head_bucket(Bucket=AWS_BUCKET_NAME)
+        except Exception as e:
+            return {"status": "error", "message": f"S3 not accessible: {str(e)}"}
+
+        return {
+            "status": "healthy",
+            "models_loaded": True,
+            "s3_accessible": True
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

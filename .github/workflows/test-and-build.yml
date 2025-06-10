@@ -143,13 +143,13 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           echo "Waiting for server to be ready..."
-          for i in {1..30}; do
-            if curl -s http://${{ secrets.EC2_HOST }}:3000/ > /dev/null; then
+          for i in {1..12}; do
+            if curl -s http://${{ secrets.EC2_HOST }}:3000/health > /dev/null; then
               echo "Server is ready!"
               exit 0
             fi
             echo "Attempt $i: Server not ready yet..."
-            sleep 10
+            sleep 5
           done
           echo "Server failed to start in time"
           exit 1
