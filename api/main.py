@@ -15,18 +15,20 @@ from nltk.tokenize import TreebankWordTokenizer
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 
-# Загружаем необходимые nltk пакеты
+# nltk
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 nltk.download('wordnet')
 nltk.download('stopwords')
 
-# Настройка логов
+
+# logs
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/api.log'),
+        logging.FileHandler(
+            'logs/api.log') if os.path.exists('logs') else logging.StreamHandler(),
         logging.StreamHandler()
     ]
 )
@@ -37,6 +39,43 @@ PORT = int(os.getenv('API_PORT', '3000'))
 model = None
 mlb = None
 use_model = None
+
+
+def init_models():
+    global model, mlb, use_model
+    try:
+        logger.info("Starting model loading...")
+        logger.info(f"Current working directory: {os.getcwd()}")
+
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        model_dir = os.path.join(base_dir, 'models')
+        logger.info(f"Base directory: {base_dir}")
+        logger.info(f"Model directory: {model_dir}")
+
+        model_path = os.path.join(model_dir, 'model.pkl')
+        mlb_path = os.path.join(model_dir, 'mlb.pkl')
+
+        logger.info("Loading model.pkl...")
+        model = joblib.load(model_path)
+        logger.info(f"✓ model.pkl loaded successfully. Type: {type(model)}")
+
+        logger.info("Loading mlb.pkl...")
+        mlb = joblib.load(mlb_path)
+        logger.info(f"✓ mlb.pkl loaded successfully. Type: {type(mlb)}")
+
+        logger.info("Loading USE embedding model...")
+        use_model = hub.load(
+            "https://tfhub.dev/google/universal-sentence-encoder/4")
+        logger.info("✓ USE model loaded successfully")
+
+        logger.info("All models loaded successfully!")
+
+    except Exception as e:
+        logger.error(f"Error during model loading: {e}")
+        logger.error(f"Exception type: {type(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise
 
 
 def get_wordnet_pos(tag):
@@ -58,31 +97,29 @@ def clean_text(text: str) -> str:
     exceptions = {'pandas', 'keras'}
 
     text = text.strip()
-    text = text.replace('c++', 'cplusplus').replace('c#', 'csharp').replace('next.js', 'nextjs').replace('node.js', 'nodejs')
+    text = text.replace('c++', 'cplusplus').replace('c#',
+                                                    'csharp').replace('next.js', 'nextjs').replace('node.js', 'nodejs')
     text = BeautifulSoup(text, 'html.parser').get_text()
     text = text.lower()
     text = re.sub(r"http\S+|www\S+", " ", text)
     text = re.sub(r"[^a-z\s]", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
-    text = text.replace('cplusplus', 'c++').replace('csharp', 'c#').replace('nextjs', 'next.js').replace('nodejs', 'node.js')
+    text = text.replace('cplusplus', 'c++').replace('csharp',
+                                                    'c#').replace('nextjs', 'next.js').replace('nodejs', 'node.js')
 
     tokens = tokenizer.tokenize(text)
     tagged = pos_tag(tokens)
-    tokens = [word if word in exceptions else lemmatizer.lemmatize(word, get_wordnet_pos(tag)) for word, tag in tagged]
+    tokens = [word if word in exceptions else lemmatizer.lemmatize(
+        word, get_wordnet_pos(tag)) for word, tag in tagged]
     tokens = [w for w in tokens if w not in stop_words]
     return ' '.join(tokens)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global model, mlb, use_model
-    logger.info("Loading model, mlb and USE embedding model...")
-    model_dir = '../models/'
-    model = joblib.load(f'{model_dir}/model.pkl')
-    mlb = joblib.load(f'{model_dir}/mlb.pkl')
-    use_model = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
-    logger.info("Models loaded successfully")
+    init_models()
     yield
+    global model, mlb, use_model
     model = None
     mlb = None
     use_model = None
@@ -97,15 +134,21 @@ app = FastAPI(
 
 
 class Question(BaseModel):
-    text: str = Field(..., min_length=1, description="Question text to predict tags for")
+    text: str = Field(..., min_length=1,
+                      description="Question text to predict tags for")
 
 
 class Prediction(BaseModel):
     tags: list[str] = Field(..., min_length=1, description="Predicted tags")
 
 
+@app.get("/")
+async def root():
+    return {"message": "API is running"}
+
+
 @app.post("/predict", response_model=Prediction)
-async def predict(question: Question):
+def predict(question: Question):
     try:
         global model, mlb, use_model
         if model is None or mlb is None or use_model is None:
@@ -116,9 +159,10 @@ async def predict(question: Question):
 
         cleaned_text = clean_text(question.text)
         if not cleaned_text:
-            raise HTTPException(status_code=400, detail="Invalid input text after cleaning")
+            raise HTTPException(
+                status_code=400, detail="Invalid input text after cleaning")
 
-        embeddings = use_model([cleaned_text])  # shape (1, embedding_dim)
+        embeddings = use_model([cleaned_text])
         prediction = model.predict(embeddings)
         tags = mlb.inverse_transform(prediction)[0]
 

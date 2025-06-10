@@ -1,15 +1,27 @@
-# StackOverflow Keywords Prediction API 🚀
+# StackOverflow Tags Prediction API 🚀
 
-Cette API prédit les tags (mots clés) d'une question StackOverflow.
+This API predicts tags for StackOverflow questions.
 
-## 📦 Fonctionnalité
+## 📦 Features
 
-- Classification multilabel
-- Pipeline avec vectoriseur TF-IDF
-- Modèle `LogisticRegression` avec OneVsRestClassifier
-- API via FastAPI
+- Multi-label classification
+- Universal Sentence Encoder for embeddings
+- Model using pre-trained embeddings
+- FastAPI with asynchronous processing
+- Logging support
+- Health check endpoint
 
-## 🧪 Test
+## 🛠 Tech Stack
 
-```bash
-pytest tests/# stackoverflow-tag-predictor
+- FastAPI
+- TensorFlow Hub (Universal Sentence Encoder)
+- NLTK for text preprocessing
+- BeautifulSoup for HTML cleaning
+- Joblib for model loading
+
+
+## 🔄 Endpoints
+
+- `GET /` - API health check
+- `POST /predict` - Predict tags for a question
+- `GET /health` - API status check
