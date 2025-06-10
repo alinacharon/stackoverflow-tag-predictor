@@ -20,9 +20,9 @@ from botocore.config import Config
 # AWS Configuration
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION')
 AWS_ENDPOINT_URL = os.getenv('AWS_ENDPOINT_URL')
-AWS_BUCKET_NAME = os.getenv('AWS_BUCKET_NAME', 'your-bucket-name')
+AWS_BUCKET_NAME = os.getenv('AWS_BUCKET_NAME')
 
 # Configure AWS client
 s3_config = Config(

@@ -78,12 +78,45 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/api-sof-project
-            git pull origin main
+            REMOTE_DIR="~/api-sof-project"
+
+            # Create the directory if it doesn't exist
+            mkdir -p "$REMOTE_DIR"
+            cd "$REMOTE_DIR"
+
+            # Attempt to pull or clone
+            if [ -d ".git" ]; then
+              echo "Repository already exists, attempting to pull changes..."
+              if ! git pull origin main; then
+                echo "Git pull failed. Attempting to reset and re-pull..."
+                git reset --hard
+                git clean -fdx
+                if ! git pull origin main; then
+                  echo "Re-pull failed. Deleting and re-cloning..."
+                  cd ~ # Go up one level to delete the project directory safely
+                  rm -rf "$REMOTE_DIR"
+                  git clone https://github.com/alinacharon/stackoverflow-tag-predictor.git "$REMOTE_DIR" # REPLACE WITH YOUR ACTUAL REPO URL
+                  cd "$REMOTE_DIR"
+                fi
+              fi
+            else
+              echo "Repository does not exist, cloning..."
+              git clone https://github.com/alinacharon/stackoverflow-tag-predictor.git . # REPLACE WITH YOUR ACTUAL REPO URL
+            fi
+
             docker stop $(docker ps -q) || true
             docker rm $(docker ps -aq) || true
+
             docker build -t tag-predictor .
-            docker run -d --env-file .env -p 3000:3000 tag-predictor
+
+            docker run -d \
+              -p 3000:3000 \
+              -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+              -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+              -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" \
+              -e AWS_ENDPOINT_URL="${{ secrets.AWS_ENDPOINT_URL }}" \
+              -e AWS_BUCKET_NAME="${{ secrets.AWS_BUCKET_NAME }}" \
+              tag-predictor
 
       - name: Wait for server to be ready
         if: github.ref == 'refs/heads/main'
@@ -109,4 +142,3 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
           AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
         run: pytest tests/test_api.py -v
-  
