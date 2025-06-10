@@ -25,6 +25,9 @@ jobs:
         pip install -r requirements.txt
         python -m nltk.downloader punkt averaged_perceptron_tagger wordnet stopwords
 
+    - name: Create logs directory
+      run: mkdir -p logs
+
     - name: Run tests
       run: PYTHONPATH=. pytest tests/test_api.py
 
