@@ -30,9 +30,13 @@ RUN python -c "import nltk; \
 # Create logs directory
 RUN mkdir -p logs
 
-# Export port
+# Export port and environment variables
 ENV API_PORT=3000
 ENV PYTHONPATH=/app
+ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+ENV AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+ENV AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
 
-# uvicorn launch
+# uvicorn launch with host 0.0.0.0 to allow external connections
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000", "--reload"]

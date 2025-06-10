@@ -1,4 +1,4 @@
-name: Test and Build Docker
+name: Build, Deploy and Test
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: ["main"]
 
 jobs:
-  test-and-build:
+  build-deploy-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,9 +27,6 @@ jobs:
 
       - name: Create logs directory
         run: mkdir -p logs
-
-      - name: Run tests
-        run: pytest tests/test_api.py -v
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -62,3 +59,51 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/stackoverflow-predictor:latest
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/stackoverflow-predictor:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/stackoverflow-predictor:buildcache,mode=max
+
+      - name: Configure AWS credentials
+        if: github.ref == 'refs/heads/main'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Deploy to EC2
+        if: github.ref == 'refs/heads/main'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/api-sof-project
+            git pull origin main
+            docker stop $(docker ps -q) || true
+            docker rm $(docker ps -aq) || true
+            docker build -t tag-predictor .
+            docker run -d --env-file .env -p 3000:3000 tag-predictor
+
+      - name: Wait for server to be ready
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Waiting for server to be ready..."
+          for i in {1..30}; do
+            if curl -s http://${{ secrets.EC2_HOST }}:3000/ > /dev/null; then
+              echo "Server is ready!"
+              exit 0
+            fi
+            echo "Attempt $i: Server not ready yet..."
+            sleep 10
+          done
+          echo "Server failed to start in time"
+          exit 1
+
+      - name: Run tests against deployed server
+        if: github.ref == 'refs/heads/main'
+        env:
+          AWS_API_URL: http://${{ secrets.EC2_HOST }}:3000
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
+        run: pytest tests/test_api.py -v

@@ -14,6 +14,28 @@ from nltk import pos_tag
 from nltk.tokenize import TreebankWordTokenizer
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
+import boto3
+from botocore.config import Config
+
+# AWS Configuration
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+AWS_ENDPOINT_URL = os.getenv('AWS_ENDPOINT_URL')
+AWS_BUCKET_NAME = os.getenv('AWS_BUCKET_NAME', 'your-bucket-name')
+
+# Configure AWS client
+s3_config = Config(
+    region_name=AWS_DEFAULT_REGION,
+    endpoint_url=AWS_ENDPOINT_URL
+)
+
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    config=s3_config
+)
 
 # nltk
 nltk.download('punkt')
@@ -41,19 +63,35 @@ mlb = None
 use_model = None
 
 
+def download_from_s3(bucket_name: str, object_key: str, local_path: str):
+    """Download file from S3 bucket"""
+    try:
+        s3_client.download_file(bucket_name, object_key, local_path)
+        logger.info(f"Successfully downloaded {object_key} from {bucket_name}")
+    except Exception as e:
+        logger.error(f"Error downloading from S3: {e}")
+        raise
+
+
 def init_models():
     global model, mlb, use_model
     try:
         logger.info("Starting model loading...")
         logger.info(f"Current working directory: {os.getcwd()}")
 
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        model_dir = os.path.join(base_dir, 'models')
-        logger.info(f"Base directory: {base_dir}")
-        logger.info(f"Model directory: {model_dir}")
+        # Create models directory if it doesn't exist
+        models_dir = os.path.join(os.getcwd(), 'models')
+        os.makedirs(models_dir, exist_ok=True)
 
-        model_path = os.path.join(model_dir, 'model.pkl')
-        mlb_path = os.path.join(model_dir, 'mlb.pkl')
+        # Download models from S3 if they don't exist locally
+        model_path = os.path.join(models_dir, 'model.pkl')
+        mlb_path = os.path.join(models_dir, 'mlb.pkl')
+
+        if not os.path.exists(model_path):
+            download_from_s3(AWS_BUCKET_NAME,
+                             'models/model.pkl', model_path)
+        if not os.path.exists(mlb_path):
+            download_from_s3(AWS_BUCKET_NAME, 'models/mlb.pkl', mlb_path)
 
         logger.info("Loading model.pkl...")
         model = joblib.load(model_path)
