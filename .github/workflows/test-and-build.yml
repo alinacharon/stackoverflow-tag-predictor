@@ -117,16 +117,20 @@ jobs:
             # Run container with optimized settings
             docker run -d \
               --restart unless-stopped \
-              --memory=512m \
-              --memory-swap=1g \
-              --memory-reservation=256m \
-              --cpus=0.5 \
+              --memory=3g \
+              --memory-swap=4g \
+              --memory-reservation=2g \
+              --cpus=1 \
+              --pids-limit=100 \
+              --network-alias=api \
               -p 3000:3000 \
               -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
               -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
               -e AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}" \
               -e AWS_ENDPOINT_URL="${{ secrets.AWS_ENDPOINT_URL }}" \
               -e AWS_BUCKET_NAME="${{ secrets.AWS_BUCKET_NAME }}" \
+              -e PYTHONUNBUFFERED=1 \
+              -e PYTHONDONTWRITEBYTECODE=1 \
               tag-predictor
 
             # Final disk space check

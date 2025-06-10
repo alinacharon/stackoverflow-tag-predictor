@@ -41,8 +41,6 @@ WORKDIR /app
 
 # Copy only necessary files
 COPY api/ api/
-COPY models/ models/
-COPY .env .
 
 # Create logs directory
 RUN mkdir -p logs
