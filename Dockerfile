@@ -1,5 +1,5 @@
 # Use multi-stage build
-FROM python:3.10-slim as builder
+FROM python:3.10-slim AS builder
 
 # Install only necessary system dependencies
 RUN apt-get update && apt-get install -y \
@@ -45,13 +45,9 @@ COPY api/ api/
 # Create logs directory
 RUN mkdir -p logs
 
-# Export port and environment variables
+# Export port
 ENV API_PORT=3000
 ENV PYTHONPATH=/app
-ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-ENV AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
-ENV AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
 
 # Pre-download USE model
 RUN python -c "import tensorflow_hub as hub; hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')"

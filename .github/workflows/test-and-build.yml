@@ -122,7 +122,6 @@ jobs:
               --memory-reservation=2g \
               --cpus=1 \
               --pids-limit=100 \
-              --network-alias=api \
               -p 3000:3000 \
               -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
               -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
@@ -132,6 +131,7 @@ jobs:
               -e PYTHONUNBUFFERED=1 \
               -e PYTHONDONTWRITEBYTECODE=1 \
               -e MODEL_LOAD_TIMEOUT=300 \
+              --name tag-predictor \
               tag-predictor
 
             # Wait for container to be healthy
@@ -148,7 +148,7 @@ jobs:
 
             if [ $timeout -le 0 ]; then
               echo "Container failed to become healthy in time"
-              docker logs $(docker ps -q --filter "name=tag-predictor")
+              docker logs tag-predictor
               exit 1
             fi
 
