@@ -4,6 +4,7 @@ import requests
 import time
 import os
 import subprocess
+import sys
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -29,28 +30,35 @@ def start_local_server():
     """Start the local API server for testing"""
     try:
         # Calculate the absolute path to the project root
-        # This script is in tests/, so two levels up is the root
         project_root = os.path.abspath(
             os.path.join(os.path.dirname(__file__), '..'))
 
-        # Check for models before starting (paths relative to project root)
-        assert os.path.exists(os.path.join(
-            project_root, "models/model.pkl")), "model.pkl not found!"
-        assert os.path.exists(os.path.join(
-            project_root, "models/mlb.pkl")), "mlb.pkl not found!"
+        # Check for models before starting (using absolute paths)
+        model_path_abs = os.path.join(project_root, "models/model.pkl")
+        mlb_path_abs = os.path.join(project_root, "models/mlb.pkl")
+        assert os.path.exists(
+            model_path_abs), f"model.pkl not found at {model_path_abs}!"
+        assert os.path.exists(
+            mlb_path_abs), f"mlb.pkl not found at {mlb_path_abs}!"
 
         # Configure environment variables
         env = os.environ.copy()
-        # Ensure PYTHONPATH includes the project root
-        # This is crucial for uvicorn api.main:app to find the 'api' package
         env["PYTHONPATH"] = project_root
 
-        # Start Uvicorn server in the background
+        # Use absolute path for python executable and run uvicorn as a module
+        # Set cwd to project_root to ensure relative imports from api/main.py work
+        command = [
+            sys.executable, "-m", "uvicorn",
+            "api.main:app",  # This will now be correctly found via PYTHONPATH
+            "--host", "0.0.0.0",
+            "--port", "3000"
+        ]
+
         process = subprocess.Popen(
-            ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000"],
+            command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=project_root,  # Set CWD to project root
+            cwd=project_root,  # Set CWD to project root for consistent path resolution
             env=env
         )
         return process

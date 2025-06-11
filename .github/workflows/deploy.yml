@@ -41,6 +41,11 @@ jobs:
           set -x
           sha256sum api/main.py || true
 
+      - name: Debug - Print api/main.py content
+        run: |
+          set -x
+          cat api/main.py
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -68,6 +73,9 @@ jobs:
       - name: Download NLTK data
         run: |
           python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('wordnet'); nltk.download('stopwords'); nltk.download('averaged_perceptron_tagger_eng')"
+
+      - name: Wait for file sync (optional debug)
+        run: sleep 5
 
       - name: Run tests
         env:
