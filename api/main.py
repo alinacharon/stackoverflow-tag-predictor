@@ -32,15 +32,21 @@ def init_models():
         logger.info("Starting model loading...")
         logger.info(f"Current working directory: {os.getcwd()}")
 
+        # Determine the absolute path
+        current_script_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Construct the path to the 'models' directory
+        project_root = os.path.dirname(current_script_dir)
+        models_dir = os.path.join(project_root, 'models')
+
         # Create models directory if it doesn't exist
-        models_dir = os.path.join(os.getcwd(), 'models')
         os.makedirs(models_dir, exist_ok=True)
 
         # Load models directly from local path
         model_path = os.path.join(models_dir, 'model.pkl')
         mlb_path = os.path.join(models_dir, 'mlb.pkl')
 
-        logger.info("Loading model.pkl...")
+        logger.info(f"Attempting to load model from: {model_path}")
         model = joblib.load(model_path)
         logger.info(f"✓ model.pkl loaded successfully. Type: {type(model)}")
 
@@ -179,4 +185,3 @@ async def health_check():
     if model is not None and mlb is not None:
         return {'status': 'healthy'}
     return {'status': 'error', 'message': 'Models not loaded'}
-
