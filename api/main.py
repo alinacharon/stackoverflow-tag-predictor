@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
 import os
 import sys
+import tensorflow as tf
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -194,17 +195,27 @@ def predict(question: Question):
             raise HTTPException(
                 status_code=400, detail="Invalid input text after cleaning")
 
-        embeddings = use_model([cleaned_text])
-        prediction = model.predict(embeddings)
-        tags = mlb.inverse_transform(prediction)[0]
+        try:
+            # Convert text to tensor and get embeddings
+            text_input = tf.constant([cleaned_text])
+            embeddings = use_model(text_input)
+            embeddings = embeddings.numpy()  # Convert tensor to numpy array
 
-        if not tags:
-            raise HTTPException(status_code=400, detail="No tags predicted")
+            prediction = model.predict(embeddings)
+            tags = mlb.inverse_transform(prediction)[0]
 
-        elapsed = time.time() - start_time
-        logger.info(f"Prediction done in {elapsed:.3f} sec. Tags: {tags}")
+            if not tags:
+                raise HTTPException(
+                    status_code=400, detail="No tags predicted")
 
-        return Prediction(tags=list(tags))
+            elapsed = time.time() - start_time
+            logger.info(f"Prediction done in {elapsed:.3f} sec. Tags: {tags}")
+
+            return Prediction(tags=list(tags))
+
+        except Exception as e:
+            logger.error(f"Error during prediction: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     except HTTPException:
         raise
