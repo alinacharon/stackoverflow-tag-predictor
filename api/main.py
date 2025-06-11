@@ -168,63 +168,94 @@ async def root():
     return {"message": "API is running"}
 
 
-@app.post("/predict", response_model=Prediction)
-def predict(question: Question):
+try:
+    use_model = hub.load(
+        "https://tfhub.dev/google/universal-sentence-encoder/4")
+    logger.info("✓ USE model loaded successfully")
+except Exception as e:
+    logger.error(f"Error loading USE model: {str(e)}")
+    raise
+
+# Функция для получения эмбеддингов
+
+
+def get_embeddings(text):
     try:
-        global model, mlb, use_model
-        if model is None or mlb is None:
+        # Преобразуем текст в список строк
+        text_list = [text]
+
+        # Получаем эмбеддинги
+        embeddings = use_model(text_list)
+
+        # Конвертируем в numpy array
+        embeddings = embeddings.numpy()
+
+        return embeddings
+    except Exception as e:
+        logger.error(f"Error in get_embeddings: {str(e)}")
+        raise
+
+
+@app.post("/predict")
+async def predict(request: Request):
+    try:
+        data = await request.json()
+        text = data.get("text", "").strip()
+
+        if not text:
             raise HTTPException(
-                status_code=500, detail="Core models not loaded")
+                status_code=400,
+                detail="Text is required"
+            )
 
-        if use_model is None:
-            logger.info("Loading USE embedding model on first use...")
-            try:
-                use_model = hub.load(
-                    "https://tfhub.dev/google/universal-sentence-encoder-lite/2")
-                logger.info("✓ USE model loaded successfully on first use.")
-            except Exception as e:
-                logger.error(f"Error loading USE model: {e}")
-                raise HTTPException(
-                    status_code=500, detail=f"Failed to load USE model: {str(e)}")
+        # Очищаем текст
+        cleaned_text = clean_text(text)
+        logger.info(f"Cleaned text: {cleaned_text}")
 
-        logger.info(f"Original text: '{question.text}'")
-        start_time = time.time()
-
-        cleaned_text = clean_text(question.text)
-        if not cleaned_text:
-            raise HTTPException(
-                status_code=400, detail="Invalid input text after cleaning")
-
+        # Получаем эмбеддинги
         try:
-            # Получаем эмбеддинги через USE
-            text_input = tf.constant([cleaned_text])
-            embeddings = use_model.signatures['default'](text_input)
-            embeddings = embeddings['outputs'].numpy()
-
-            prediction = model.predict(embeddings)
-            tags = mlb.inverse_transform(prediction)[0]
-
-            if not tags:
-                raise HTTPException(
-                    status_code=400, detail="No tags predicted")
-
-            elapsed = time.time() - start_time
-            logger.info(f"Prediction done in {elapsed:.3f} sec. Tags: {tags}")
-
-            return Prediction(tags=list(tags))
-
+            embeddings = get_embeddings(cleaned_text)
+            logger.info(f"Got embeddings with shape: {embeddings.shape}")
         except Exception as e:
-            logger.error(f"Error during prediction: {str(e)}")
-            logger.error(f"Exception type: {type(e)}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error(f"Error getting embeddings: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error getting embeddings: {str(e)}"
+            )
+
+        # Получаем предсказания
+        try:
+            prediction = model.predict(embeddings)
+            logger.info(f"Raw prediction shape: {prediction.shape}")
+        except Exception as e:
+            logger.error(f"Error making prediction: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error making prediction: {str(e)}"
+            )
+
+        # Преобразуем предсказания в теги
+        try:
+            tags = mlb.inverse_transform(prediction)
+            tags = [tag for tag_list in tags for tag in tag_list]
+            logger.info(f"Predicted tags: {tags}")
+        except Exception as e:
+            logger.error(f"Error transforming predictions to tags: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error transforming predictions to tags: {str(e)}"
+            )
+
+        return {"tags": tags}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Prediction error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error in predict: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
+        )
 
 
 @app.get('/health')
