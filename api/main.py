@@ -196,14 +196,10 @@ def predict(question: Question):
                 status_code=400, detail="Invalid input text after cleaning")
 
         try:
-            # Convert text to tensor and get embeddings
+            # Получаем эмбеддинги через USE
             text_input = tf.constant([cleaned_text])
-
-            # Get embeddings using the model's __call__ method
-            embeddings = use_model(text_input)
-            if isinstance(embeddings, dict):
-                embeddings = embeddings['outputs']
-            embeddings = embeddings.numpy()  # Convert tensor to numpy array
+            embeddings = use_model.signatures['default'](text_input)
+            embeddings = embeddings['outputs'].numpy()
 
             prediction = model.predict(embeddings)
             tags = mlb.inverse_transform(prediction)[0]
