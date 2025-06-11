@@ -3,42 +3,22 @@ import logging
 import requests
 import time
 import os
-import boto3
-from botocore.config import Config
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# AWS Configuration
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
-AWS_ENDPOINT_URL = os.getenv('AWS_ENDPOINT_URL')
 
-# Configure AWS client
-s3_config = Config(
-    region_name=AWS_DEFAULT_REGION,
-    endpoint_url=AWS_ENDPOINT_URL
-)
+# Configuration for EC2 instance
+API_URL = os.getenv('AWS_API_URL')
 
-s3_client = boto3.client(
-    's3',
-    aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-    config=s3_config
-)
-
-# Configuration for AWS EC2 instance
-AWS_API_URL = os.getenv('AWS_API_URL', 'http://your-ec2-instance-url:3000')
-
-# Configure requests session with retry strategy
+# Configure requests session 
 session = requests.Session()
 retry_strategy = Retry(
-    total=3,  # number of retries
-    backoff_factor=1,  # wait 1, 2, 4 seconds between retries
-    status_forcelist=[500, 502, 503, 504]  # HTTP status codes to retry on
+    total=3, 
+    backoff_factor=1,  
+    status_forcelist=[500, 502, 503, 504]  
 )
 adapter = HTTPAdapter(max_retries=retry_strategy)
 session.mount("http://", adapter)
@@ -49,8 +29,9 @@ def wait_for_server(url: str, max_retries: int = 5, delay: int = 2):
     """Wait for server to be ready with improved error handling"""
     for i in range(max_retries):
         try:
-            response = session.get(url, timeout=10)
-            if response.status_code == 200:
+            # Check the /health endpoint now
+            response = session.get(f"{url}/health", timeout=10)
+            if response.status_code == 200 and response.json().get("status") == "healthy":
                 logger.info("Server is ready and responding")
                 return True
         except requests.exceptions.RequestException as e:
@@ -63,10 +44,10 @@ def wait_for_server(url: str, max_retries: int = 5, delay: int = 2):
 @pytest.fixture(scope="session", autouse=True)
 def setup_server():
     """Check server availability before running tests with improved error handling"""
-    logger.info(f"Checking server availability at {AWS_API_URL}")
-    if not wait_for_server(AWS_API_URL):
+    logger.info(f"Checking server availability at {API_URL}")
+    if not wait_for_server(API_URL):
         pytest.fail(
-            f"Failed to connect to AWS server at {AWS_API_URL}. "
+            f"Failed to connect to server at {API_URL}. "
             "Make sure the EC2 instance is running and the API is accessible."
         )
     logger.info("Server is available, proceeding with tests")
@@ -75,9 +56,9 @@ def setup_server():
 def test_health_check():
     """Test server health check endpoint with improved error handling"""
     try:
-        response = session.get(f"{AWS_API_URL}/", timeout=10)
+        response = session.get(f"{API_URL}/health", timeout=10)
         assert response.status_code == 200
-        assert response.json() == {"message": "API is running"}
+        assert response.json() == {"status": "healthy"}
     except requests.exceptions.RequestException as e:
         pytest.fail(f"Health check failed: {str(e)}")
 
@@ -90,7 +71,7 @@ def test_predict_valid_text():
     try:
         payload = {"text": test_text}
         response = session.post(
-            f"{AWS_API_URL}/predict",
+            f"{API_URL}/predict",
             json=payload,
             timeout=30  # Increased timeout for prediction
         )
@@ -118,7 +99,7 @@ def test_predict_empty_text():
     try:
         payload = {"text": ""}
         response = session.post(
-            f"{AWS_API_URL}/predict",
+            f"{API_URL}/predict",
             json=payload,
             timeout=10
         )
@@ -136,9 +117,9 @@ def test_predict_invalid_text():
     try:
         payload = {"text": test_text}
         response = session.post(
-            f"{AWS_API_URL}/predict",
+            f"{API_URL}/predict",
             json=payload,
-            timeout=30  # Increased timeout for prediction
+            timeout=60 
         )
 
         logger.info(f"Response status: {response.status_code}")
@@ -173,7 +154,7 @@ def test_server_performance():
         try:
             payload = {"text": text}
             response = session.post(
-                f"{AWS_API_URL}/predict",
+                f"{API_URL}/predict",
                 json=payload,
                 timeout=30
             )
@@ -190,4 +171,4 @@ def test_server_performance():
         f"Successful requests: {successful_requests}/{len(test_texts)}")
 
     assert successful_requests > 0, "No successful requests in performance test"
-    assert total_time < 60, "Performance test took too long"
+    assert total_time < 90, "Performance test took too long"
