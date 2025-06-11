@@ -83,9 +83,15 @@ def init_models():
         # Load XGBoost model
         try:
             with open(model_path, 'rb') as f:
-                model_data = f.read()
-                model = xgb.XGBClassifier()
-                model.load_model(model_data)
+                model = pickle.load(f)
+                if isinstance(model, xgb.XGBClassifier):
+                    # Создаем новый экземпляр с теми же параметрами
+                    model_params = model.get_params()
+                    model_params['use_label_encoder'] = False
+                    new_model = xgb.XGBClassifier(**model_params)
+                    # Копируем внутренний бустер
+                    new_model._Booster = model._Booster
+                    model = new_model
                 logger.info("✓ XGBoost model loaded successfully")
         except Exception as e:
             logger.error(f"Error loading XGBoost model: {str(e)}")

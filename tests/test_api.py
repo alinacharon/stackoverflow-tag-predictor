@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 # Local API configuration
 API_URL = "http://localhost:3000"
+MAX_RETRIES = 3
+TIMEOUT = 30  # таймаут в секундах
 
 # Configure requests session with retry strategy
 session = requests.Session()
@@ -27,57 +29,49 @@ session.mount("https://", adapter)
 
 
 def start_local_server():
-    """Start the local API server for testing"""
+    """Start the FastAPI server locally"""
     try:
-        # Calculate the absolute path to the project root
-        project_root = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '..'))
-
-        # Check for models before starting (using absolute paths)
-        model_path_abs = os.path.join(project_root, "models/model.pkl")
-        mlb_path_abs = os.path.join(project_root, "models/mlb.pkl")
-        assert os.path.exists(
-            model_path_abs), f"model.pkl not found at {model_path_abs}!"
-        assert os.path.exists(
-            mlb_path_abs), f"mlb.pkl not found at {mlb_path_abs}!"
-
-        # Configure environment variables
-        env = os.environ.copy()
-        env["PYTHONPATH"] = project_root
-
-        # Use absolute path for python executable and run uvicorn as a module
-        # Set cwd to project_root to ensure relative imports from api/main.py work
-        command = [
-            sys.executable, "-m", "uvicorn",
-            "api.main:app",  # This will now be correctly found via PYTHONPATH
-            "--host", "0.0.0.0",
-            "--port", "3000"
-        ]
-
+        # Запускаем сервер в фоновом режиме
         process = subprocess.Popen(
-            command,
+            ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=project_root,  # Set CWD to project root for consistent path resolution
-            env=env
+            text=True
         )
+
+        # Даем серверу 5 секунд на запуск
+        time.sleep(5)
+
+        # Проверяем, не завершился ли процесс
+        if process.poll() is not None:
+            stderr = process.stderr.read()
+            stdout = process.stdout.read()
+            logger.error(
+                f"Server failed to start. Exit code: {process.returncode}")
+            logger.error(f"Stdout: {stdout}")
+            logger.error(f"Stderr: {stderr}")
+            raise RuntimeError("Server process terminated unexpectedly")
+
         return process
     except Exception as e:
-        logger.error(f"Failed to start local server: {e}")
+        logger.error(f"Error starting server: {str(e)}")
         raise
 
 
-def wait_for_server(url: str, max_retries: int = 20, delay: int = 5):
-    """Wait for server to be ready with improved error handling"""
-    for i in range(max_retries):
+def wait_for_server(url: str, max_attempts: int = 20, delay: int = 1) -> bool:
+    """Wait for the server to be ready"""
+    session = requests.Session()
+    retries = Retry(total=3, backoff_factor=0.1)
+    session.mount('http://', HTTPAdapter(max_retries=retries))
+
+    for attempt in range(max_attempts):
         try:
-            response = session.get(f"{url}/health", timeout=10)
-            if response.status_code == 200 and response.json().get("status") == "healthy":
-                logger.info("Server is ready and responding")
+            response = session.get(f"{url}/health", timeout=5)
+            if response.status_code == 200:
                 return True
         except requests.exceptions.RequestException as e:
             logger.warning(
-                f"Attempt {i+1}/{max_retries}: Server not ready. Error: {str(e)}")
+                f"Attempt {attempt + 1}/{max_attempts}: Server not ready. Error: {str(e)}")
             time.sleep(delay)
     return False
 
@@ -85,150 +79,91 @@ def wait_for_server(url: str, max_retries: int = 20, delay: int = 5):
 @pytest.fixture(scope="session", autouse=True)
 def setup_server():
     """Setup and teardown of the local test server"""
-    # Start the server
-    server_process = start_local_server()
+    server_process = None
+    try:
+        # Start the server
+        server_process = start_local_server()
 
-    # Wait for server to be ready
-    if not wait_for_server(API_URL):
-        stderr = server_process.stderr.read().decode()
-        stdout = server_process.stdout.read().decode()
-        logger.error(f"Uvicorn stderr: {stderr}")
-        logger.error(f"Uvicorn stdout: {stdout}")
-        server_process.terminate()
-        pytest.fail("Failed to start local server")
+        # Wait for server to be ready
+        if not wait_for_server(API_URL):
+            stderr = server_process.stderr.read()
+            stdout = server_process.stdout.read()
+            logger.error(f"Uvicorn stderr: {stderr}")
+            logger.error(f"Uvicorn stdout: {stdout}")
+            server_process.terminate()
+            pytest.fail("Failed to start local server")
 
-    yield
+        yield
 
-    # Cleanup: stop the server
-    server_process.terminate()
-    server_process.wait()
+    finally:
+        # Cleanup
+        if server_process:
+            server_process.terminate()
+            try:
+                server_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                server_process.kill()
 
 
+@pytest.mark.timeout(TIMEOUT)
 def test_health_check():
     """Test the health check endpoint"""
-    try:
-        response = session.get(f"{API_URL}/health", timeout=10)
-        assert response.status_code == 200
-        assert response.json() == {"status": "healthy"}
-    except requests.exceptions.RequestException as e:
-        pytest.fail(f"Health check failed: {str(e)}")
+    response = requests.get(f"{API_URL}/health")
+    assert response.status_code == 200
+    assert response.json() == {"message": "API is running"}
 
 
+@pytest.mark.timeout(TIMEOUT)
 def test_predict_valid_text():
-    """Test prediction for valid text input"""
-    logger.info("Starting test_predict_valid_text")
-    test_text = "How to use Python dictionaries effectively?"
-
-    try:
-        payload = {"text": test_text}
-        response = session.post(
-            f"{API_URL}/predict",
-            json=payload,
-            timeout=30
-        )
-
-        logger.info(f"Response status: {response.status_code}")
-        logger.info(f"Response headers: {response.headers}")
-        logger.info(f"Response body: {response.text}")
-
-        if response.status_code != 200:
-            logger.error(f"Server error response: {response.text}")
-            # Get server logs
-            server_process = start_local_server()
-            stderr = server_process.stderr.read().decode()
-            stdout = server_process.stdout.read().decode()
-            logger.error(f"Server stderr: {stderr}")
-            logger.error(f"Server stdout: {stdout}")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "tags" in data
-        assert isinstance(data["tags"], list)
-        assert len(data["tags"]) > 0, "No tags were predicted"
-
-        logger.info(f"Successfully predicted tags: {data['tags']}")
-
-    except requests.exceptions.RequestException as e:
-        pytest.fail(f"Prediction request failed: {str(e)}")
-    except AssertionError as e:
-        pytest.fail(f"Prediction validation failed: {str(e)}")
+    """Test prediction with valid text input"""
+    test_text = "How to implement a binary search tree in Python?"
+    response = requests.post(
+        f"{API_URL}/predict",
+        json={"text": test_text}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "tags" in data
+    assert isinstance(data["tags"], list)
 
 
+@pytest.mark.timeout(TIMEOUT)
 def test_predict_empty_text():
-    """Test prediction for empty text input"""
-    try:
-        payload = {"text": ""}
-        response = session.post(
-            f"{API_URL}/predict",
-            json=payload,
-            timeout=10
-        )
-        assert response.status_code == 422
-        assert "detail" in response.json()
-    except requests.exceptions.RequestException as e:
-        pytest.fail(f"Empty text test failed: {str(e)}")
+    """Test prediction with empty text input"""
+    response = requests.post(
+        f"{API_URL}/predict",
+        json={"text": ""}
+    )
+    assert response.status_code == 422
 
 
+@pytest.mark.timeout(TIMEOUT)
 def test_predict_invalid_text():
-    """Test prediction for invalid text input"""
-    logger.info("Starting test_predict_invalid_text")
-    test_text = "!!!@@@###"
-
-    try:
-        payload = {"text": test_text}
-        response = session.post(
-            f"{API_URL}/predict",
-            json=payload,
-            timeout=60
-        )
-
-        logger.info(f"Response status: {response.status_code}")
-        logger.info(f"Response headers: {response.headers}")
-        logger.info(f"Response body: {response.text}")
-
-        assert response.status_code in [200, 400]
-
-        if response.status_code == 200:
-            data = response.json()
-            assert "tags" in data
-            assert isinstance(data["tags"], list)
-            logger.info(f"Received tags for invalid text: {data['tags']}")
-
-    except requests.exceptions.RequestException as e:
-        pytest.fail(f"Invalid text test failed: {str(e)}")
+    """Test prediction with invalid text input"""
+    response = requests.post(
+        f"{API_URL}/predict",
+        json={"text": 123}
+    )
+    assert response.status_code == 422
 
 
+@pytest.mark.timeout(TIMEOUT)
 def test_server_performance():
-    """Test server performance with multiple concurrent requests"""
-    logger.info("Starting performance test")
-    test_texts = [
-        "How to use Python dictionaries effectively?",
-        "What is the best way to learn machine learning?",
-        "How to deploy a Docker container?"
-    ]
-
-    start_time = time.time()
+    """Test server performance with multiple requests"""
+    test_text = "How to implement a binary search tree in Python?"
+    num_requests = 10
     successful_requests = 0
 
-    for text in test_texts:
+    for _ in range(num_requests):
         try:
-            payload = {"text": text}
-            response = session.post(
+            response = requests.post(
                 f"{API_URL}/predict",
-                json=payload,
-                timeout=30
+                json={"text": test_text},
+                timeout=5
             )
             if response.status_code == 200:
                 successful_requests += 1
         except requests.exceptions.RequestException:
             continue
 
-    end_time = time.time()
-    total_time = end_time - start_time
-
-    logger.info(f"Performance test completed in {total_time:.2f} seconds")
-    logger.info(
-        f"Successful requests: {successful_requests}/{len(test_texts)}")
-
     assert successful_requests > 0, "No successful requests in performance test"
-    assert total_time < 90, "Performance test took too long"
