@@ -202,7 +202,10 @@ def get_embeddings(texts: List[str]) -> np.ndarray:
 
     except Exception as e:
         logger.error(f"Error in get_embeddings: {str(e)}")
-        raise
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting embeddings: {str(e)}"
+        )
 
 
 def load_model():
@@ -243,8 +246,14 @@ def load_model():
             # Создаем новый экземпляр XGBClassifier с теми же параметрами
             if isinstance(model, xgboost.XGBClassifier):
                 model_params = model.get_params()
+                # Добавляем параметр use_label_encoder
+                model_params['use_label_encoder'] = False
                 model = xgboost.XGBClassifier(**model_params)
+                # Копируем внутренний бустер
                 model._Booster = model._Booster
+                # Устанавливаем атрибуты, которые могут быть необходимы
+                model._le = model._le if hasattr(model, '_le') else None
+                model._estimator_type = 'classifier'
             logger.info(
                 f"✓ model.pkl loaded successfully. Type: {type(model)}")
 
