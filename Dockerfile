@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy only dependency files
-COPY requirements.txt .
+COPY requirements-prod.txt .
 
 # Install dependencies in virtual environment
 RUN python -m venv /opt/venv
@@ -22,13 +22,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install dependencies in smaller chunks to manage memory better
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir numpy scipy && \
-    pip install --no-cache-dir tensorflow tensorflow-hub && \
-    pip install --no-cache-dir xgboost scikit-learn && \
-    pip install --no-cache-dir fastapi uvicorn && \
-    pip install --no-cache-dir boto3 python-dotenv && \
-    pip install --no-cache-dir pytest pytest-cov pytest-timeout pytest-xdist && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements-prod.txt
 
 # Download NLTK data
 RUN python -c "import nltk; \
@@ -62,7 +56,7 @@ ENV PYTHONPATH=/app
 RUN python -c "import tensorflow_hub as hub; hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')"
 
 # Add healthcheck
-HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:3000/health || exit 1
 
 # Run uvicorn with optimized settings
