@@ -1,19 +1,23 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-import os
-import time
-from contextlib import asynccontextmanager
-import re
-import joblib
-import numpy as np
-import tensorflow_hub as hub
-import nltk
-from bs4 import BeautifulSoup
-from nltk import pos_tag
-from nltk.tokenize import TreebankWordTokenizer
-from nltk.corpus import stopwords, wordnet
-from nltk.stem import WordNetLemmatizer
 from logger import logger
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords, wordnet
+from nltk.tokenize import TreebankWordTokenizer
+from nltk import pos_tag
+from bs4 import BeautifulSoup
+import nltk
+import tensorflow_hub as hub
+import numpy as np
+import joblib
+import re
+from contextlib import asynccontextmanager
+import time
+from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException
+import os
+import sys
+# Add the project root to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 # nltk
 nltk.download('punkt')
