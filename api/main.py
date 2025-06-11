@@ -12,10 +12,14 @@ import re
 from contextlib import asynccontextmanager
 import time
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import sys
 import tensorflow as tf
+import tensorflow_text
+import pickle
+from typing import List, Dict, Any
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -199,63 +203,40 @@ def get_embeddings(text):
 @app.post("/predict")
 async def predict(request: Request):
     try:
+        # Получаем данные из запроса
         data = await request.json()
-        text = data.get("text", "").strip()
+        text = data.get("text", "")
 
         if not text:
-            raise HTTPException(
-                status_code=400,
-                detail="Text is required"
-            )
+            raise HTTPException(status_code=400, detail="Text is required")
 
-        # Очищаем текст
-        cleaned_text = clean_text(text)
-        logger.info(f"Cleaned text: {cleaned_text}")
+        if not isinstance(text, str):
+            raise HTTPException(
+                status_code=400, detail="Text must be a string")
+
+        if len(text) > 10000:
+            raise HTTPException(
+                status_code=400, detail="Text is too long (max 10000 characters)")
 
         # Получаем эмбеддинги
-        try:
-            embeddings = get_embeddings(cleaned_text)
-            logger.info(f"Got embeddings with shape: {embeddings.shape}")
-        except Exception as e:
-            logger.error(f"Error getting embeddings: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error getting embeddings: {str(e)}"
-            )
+        embeddings = get_embeddings([text])
 
         # Получаем предсказания
-        try:
-            prediction = model.predict(embeddings)
-            logger.info(f"Raw prediction shape: {prediction.shape}")
-        except Exception as e:
-            logger.error(f"Error making prediction: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error making prediction: {str(e)}"
-            )
+        predictions = model.predict(embeddings)
 
-        # Преобразуем предсказания в теги
-        try:
-            tags = mlb.inverse_transform(prediction)
-            tags = [tag for tag_list in tags for tag in tag_list]
-            logger.info(f"Predicted tags: {tags}")
-        except Exception as e:
-            logger.error(f"Error transforming predictions to tags: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error transforming predictions to tags: {str(e)}"
-            )
+        # Получаем теги
+        tags = mlb.inverse_transform(predictions)
 
-        return {"tags": tags}
+        # Формируем ответ
+        response = {
+            "tags": tags[0].tolist() if len(tags) > 0 else []
+        }
 
-    except HTTPException:
-        raise
+        return response
+
     except Exception as e:
-        logger.error(f"Unexpected error in predict: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Unexpected error: {str(e)}"
-        )
+        logger.error(f"Error in predict endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get('/health')
