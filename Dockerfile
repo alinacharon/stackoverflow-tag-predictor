@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy only dependency files
-COPY requirements-prod.txt .
+COPY requirements.txt .
 
 # Install dependencies in virtual environment
 RUN python -m venv /opt/venv
@@ -22,7 +22,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install dependencies in smaller chunks to manage memory better
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements-prod.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # Download NLTK data
 RUN python -c "import nltk; \
