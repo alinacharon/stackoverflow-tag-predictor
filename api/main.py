@@ -25,7 +25,7 @@ nltk.download('stopwords')
 # logs
 logging.basicConfig(
     level=logging.INFO,
-    format='% (asctime)s - % (name)s - % (levelname)s - % (message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(
             'logs/api.log') if os.path.exists('logs') else logging.StreamHandler(),
