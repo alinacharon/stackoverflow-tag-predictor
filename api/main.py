@@ -231,32 +231,8 @@ def predict(question: Question):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/health")
+@app.get('/health')
 async def health_check():
-    """Health check endpoint"""
-    try:
-        if model is None or mlb is None:
-            return {
-                "status": "error",
-                "message": "Core models not loaded",
-                "use_model_loaded": use_model is not None
-            }
-
-        try:
-            s3_client.head_bucket(Bucket=AWS_BUCKET_NAME)
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"S3 not accessible: {str(e)}",
-                "use_model_loaded": use_model is not None
-            }
-
-        return {
-            "status": "healthy",
-            "models_loaded": True,
-            "s3_accessible": True,
-            "use_model_loaded": use_model is not None
-        }
-
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    if model is not None and mlb is not None:
+        return {'status': 'healthy'}
+    return {'status': 'error', 'message': 'Models not loaded'}
