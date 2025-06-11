@@ -41,6 +41,14 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Clear Python cache
+        run: |
+          find . -type d -name "__pycache__" -exec rm -rf {} + || true
+          find . -type f -name "*.pyc" -delete || true
+
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip

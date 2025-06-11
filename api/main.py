@@ -36,12 +36,8 @@ def init_models():
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Construct the path to the 'models' directory
-        # It's one level up from 'api' (where main.py is) and then into 'models'
         project_root = os.path.dirname(current_script_dir)
         models_dir = os.path.join(project_root, 'models')
-
-        # Create models directory if it doesn't exist
-        os.makedirs(models_dir, exist_ok=True)
 
         # Load models directly from local path
         model_path = os.path.join(models_dir, 'model.pkl')
