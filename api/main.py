@@ -180,21 +180,25 @@ except Exception as e:
     logger.error(f"Error loading USE model: {str(e)}")
     raise
 
-# Функция для получения эмбеддингов
 
-
-def get_embeddings(text):
+def get_embeddings(texts: List[str]) -> np.ndarray:
+    """Get embeddings from USE model"""
     try:
-        # Преобразуем текст в список строк
-        text_list = [text]
 
-        # Получаем эмбеддинги
-        embeddings = use_model(text_list)
+        if isinstance(texts, str):
+            texts = [texts]
 
-        # Конвертируем в numpy array
+        text_input = tf.constant(texts, dtype=tf.string)
+        logger.info(f"Input tensor shape: {text_input.shape}")
+
+        embeddings = use_model(text_input)
+        logger.info(f"Raw embeddings shape: {embeddings.shape}")
+
         embeddings = embeddings.numpy()
+        logger.info(f"Final embeddings shape: {embeddings.shape}")
 
         return embeddings
+
     except Exception as e:
         logger.error(f"Error in get_embeddings: {str(e)}")
         raise
@@ -203,40 +207,72 @@ def get_embeddings(text):
 @app.post("/predict")
 async def predict(request: Request):
     try:
-        # Получаем данные из запроса
         data = await request.json()
         text = data.get("text", "")
 
         if not text:
-            raise HTTPException(status_code=400, detail="Text is required")
+            raise HTTPException(
+                status_code=400,
+                detail="Text is required"
+            )
 
         if not isinstance(text, str):
             raise HTTPException(
-                status_code=400, detail="Text must be a string")
+                status_code=400,
+                detail="Text must be a string"
+            )
 
         if len(text) > 10000:
             raise HTTPException(
-                status_code=400, detail="Text is too long (max 10000 characters)")
+                status_code=400,
+                detail="Text is too long (max 10000 characters)"
+            )
 
-        # Получаем эмбеддинги
-        embeddings = get_embeddings([text])
+        try:
+            embeddings = get_embeddings(text)
+            logger.info(f"Got embeddings with shape: {embeddings.shape}")
+        except Exception as e:
+            logger.error(f"Error getting embeddings: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error getting embeddings: {str(e)}"
+            )
 
         # Получаем предсказания
-        predictions = model.predict(embeddings)
+        try:
+            predictions = model.predict(embeddings)
+            logger.info(f"Raw predictions shape: {predictions.shape}")
+        except Exception as e:
+            logger.error(f"Error making prediction: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error making prediction: {str(e)}"
+            )
 
-        # Получаем теги
-        tags = mlb.inverse_transform(predictions)
+        try:
+            tags = mlb.inverse_transform(predictions)
+            logger.info(f"Transformed tags: {tags}")
+        except Exception as e:
+            logger.error(f"Error transforming predictions to tags: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error transforming predictions to tags: {str(e)}"
+            )
 
-        # Формируем ответ
         response = {
             "tags": tags[0].tolist() if len(tags) > 0 else []
         }
 
         return response
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error in predict endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error in predict: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
+        )
 
 
 @app.get('/health')
