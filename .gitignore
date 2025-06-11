@@ -35,7 +35,6 @@ ENV/
 *.swo
 
 # Project specific
-models/
 logs/
 *.log
 
