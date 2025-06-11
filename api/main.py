@@ -20,6 +20,7 @@ import tensorflow as tf
 import tensorflow_text
 import pickle
 from typing import List, Dict, Any
+import xgboost
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -204,6 +205,63 @@ def get_embeddings(texts: List[str]) -> np.ndarray:
         raise
 
 
+def load_model():
+    """Load the model and MLB"""
+    try:
+        logger.info("Starting model loading...")
+
+        # Get the absolute path to the models directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        models_dir = os.path.join(project_root, "models")
+
+        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Current script directory: {current_dir}")
+        logger.info(f"Project root: {project_root}")
+        logger.info(f"Models directory: {models_dir}")
+
+        # List all files in the models directory
+        logger.info(f"Files in models directory: {os.listdir(models_dir)}")
+
+        model_path = os.path.join(models_dir, "model.pkl")
+        mlb_path = os.path.join(models_dir, "mlb.pkl")
+
+        # Log file sizes
+        logger.info(
+            f"File model.pkl size: {os.path.getsize(model_path)} bytes")
+        logger.info(f"File mlb.pkl size: {os.path.getsize(mlb_path)} bytes")
+
+        logger.info(f"Attempting to load model from: {model_path}")
+        logger.info(f"Model file exists: {os.path.exists(model_path)}")
+        logger.info(f"MLB file exists: {os.path.exists(mlb_path)}")
+        logger.info(f"Model file size: {os.path.getsize(model_path)} bytes")
+        logger.info(f"MLB file size: {os.path.getsize(mlb_path)} bytes")
+
+        # Load the model with the correct version of XGBoost
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
+            # Создаем новый экземпляр XGBClassifier с теми же параметрами
+            if isinstance(model, xgboost.XGBClassifier):
+                model_params = model.get_params()
+                model = xgboost.XGBClassifier(**model_params)
+                model._Booster = model._Booster
+            logger.info(
+                f"✓ model.pkl loaded successfully. Type: {type(model)}")
+
+        logger.info("Loading mlb.pkl...")
+        with open(mlb_path, 'rb') as f:
+            mlb = pickle.load(f)
+            logger.info(f"✓ mlb.pkl loaded successfully. Type: {type(mlb)}")
+
+        logger.info(
+            "Model loading complete (USE model will be loaded on first use)!")
+        return model, mlb
+
+    except Exception as e:
+        logger.error(f"Error loading model: {str(e)}")
+        raise
+
+
 @app.post("/predict")
 async def predict(request: Request):
     try:
@@ -239,8 +297,11 @@ async def predict(request: Request):
             )
 
         try:
-            predictions = model.predict(embeddings)
+            # Используем predict_proba вместо predict
+            predictions = model.predict_proba(embeddings)
             logger.info(f"Raw predictions shape: {predictions.shape}")
+            # Преобразуем вероятности в бинарные предсказания
+            predictions = (predictions > 0.5).astype(int)
         except Exception as e:
             logger.error(f"Error making prediction: {str(e)}")
             raise HTTPException(
