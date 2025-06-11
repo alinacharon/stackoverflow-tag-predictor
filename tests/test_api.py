@@ -3,33 +3,47 @@ import logging
 import requests
 import time
 import os
+import subprocess
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Local API configuration
+API_URL = "http://localhost:3000"
 
-# Configuration for EC2 instance
-API_URL = os.getenv('AWS_API_URL')
-
-# Configure requests session 
+# Configure requests session with retry strategy
 session = requests.Session()
 retry_strategy = Retry(
-    total=3, 
-    backoff_factor=1,  
-    status_forcelist=[500, 502, 503, 504]  
+    total=3,
+    backoff_factor=1,
+    status_forcelist=[500, 502, 503, 504]
 )
 adapter = HTTPAdapter(max_retries=retry_strategy)
 session.mount("http://", adapter)
 session.mount("https://", adapter)
 
 
+def start_local_server():
+    """Start the local API server for testing"""
+    try:
+        # Start the server in a subprocess
+        process = subprocess.Popen(
+            ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        return process
+    except Exception as e:
+        logger.error(f"Failed to start local server: {e}")
+        raise
+
+
 def wait_for_server(url: str, max_retries: int = 5, delay: int = 2):
     """Wait for server to be ready with improved error handling"""
     for i in range(max_retries):
         try:
-            # Check the /health endpoint now
             response = session.get(f"{url}/health", timeout=10)
             if response.status_code == 200 and response.json().get("status") == "healthy":
                 logger.info("Server is ready and responding")
@@ -43,18 +57,24 @@ def wait_for_server(url: str, max_retries: int = 5, delay: int = 2):
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_server():
-    """Check server availability before running tests with improved error handling"""
-    logger.info(f"Checking server availability at {API_URL}")
+    """Setup and teardown of the local test server"""
+    # Start the server
+    server_process = start_local_server()
+
+    # Wait for server to be ready
     if not wait_for_server(API_URL):
-        pytest.fail(
-            f"Failed to connect to server at {API_URL}. "
-            "Make sure the EC2 instance is running and the API is accessible."
-        )
-    logger.info("Server is available, proceeding with tests")
+        server_process.terminate()
+        pytest.fail("Failed to start local server")
+
+    yield
+
+    # Cleanup: stop the server
+    server_process.terminate()
+    server_process.wait()
 
 
 def test_health_check():
-    """Test server health check endpoint with improved error handling"""
+    """Test the health check endpoint"""
     try:
         response = session.get(f"{API_URL}/health", timeout=10)
         assert response.status_code == 200
@@ -64,7 +84,7 @@ def test_health_check():
 
 
 def test_predict_valid_text():
-    """Test prediction for valid text with improved error handling and logging"""
+    """Test prediction for valid text input"""
     logger.info("Starting test_predict_valid_text")
     test_text = "How to use Python dictionaries effectively?"
 
@@ -73,7 +93,7 @@ def test_predict_valid_text():
         response = session.post(
             f"{API_URL}/predict",
             json=payload,
-            timeout=30  # Increased timeout for prediction
+            timeout=30
         )
 
         logger.info(f"Response status: {response.status_code}")
@@ -95,7 +115,7 @@ def test_predict_valid_text():
 
 
 def test_predict_empty_text():
-    """Test prediction for empty text with improved error handling"""
+    """Test prediction for empty text input"""
     try:
         payload = {"text": ""}
         response = session.post(
@@ -110,7 +130,7 @@ def test_predict_empty_text():
 
 
 def test_predict_invalid_text():
-    """Test prediction for invalid text with improved error handling"""
+    """Test prediction for invalid text input"""
     logger.info("Starting test_predict_invalid_text")
     test_text = "!!!@@@###"
 
@@ -119,7 +139,7 @@ def test_predict_invalid_text():
         response = session.post(
             f"{API_URL}/predict",
             json=payload,
-            timeout=60 
+            timeout=60
         )
 
         logger.info(f"Response status: {response.status_code}")
@@ -139,7 +159,7 @@ def test_predict_invalid_text():
 
 
 def test_server_performance():
-    """Test server performance with multiple requests"""
+    """Test server performance with multiple concurrent requests"""
     logger.info("Starting performance test")
     test_texts = [
         "How to use Python dictionaries effectively?",
