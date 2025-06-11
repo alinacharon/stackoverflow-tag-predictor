@@ -18,8 +18,23 @@ jobs:
       - name: Pull Git LFS files
         run: git lfs pull
 
-      - name: List models directory contents
-        run: ls -l models/
+      - name: Debug - List root directory contents
+        run: |
+          set -x
+          pwd
+          ls -l
+
+      - name: Debug - List API directory contents
+        run: |
+          set -x
+          pwd api/
+          ls -l api/
+
+      - name: Debug - List models directory contents
+        run: |
+          set -x
+          pwd models/
+          ls -l models/
 
       - name: Set up Python
         uses: actions/setup-python@v5
