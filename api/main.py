@@ -32,10 +32,11 @@ def init_models():
         logger.info("Starting model loading...")
         logger.info(f"Current working directory: {os.getcwd()}")
 
-        # Determine the absolute path
+        # Determine the absolute path to the directory containing main.py
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Construct the path to the 'models' directory
+        # It's one level up from 'api' (where main.py is) and then into 'models'
         project_root = os.path.dirname(current_script_dir)
         models_dir = os.path.join(project_root, 'models')
 
@@ -47,6 +48,7 @@ def init_models():
         mlb_path = os.path.join(models_dir, 'mlb.pkl')
 
         logger.info(f"Attempting to load model from: {model_path}")
+        logger.info(f"DEBUG: models_dir computed as: {models_dir}")
         model = joblib.load(model_path)
         logger.info(f"✓ model.pkl loaded successfully. Type: {type(model)}")
 
