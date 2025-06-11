@@ -20,7 +20,9 @@ import tensorflow as tf
 import tensorflow_text
 import pickle
 from typing import List, Dict, Any
-import xgboost
+import xgboost as xgb
+import json
+import traceback
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -37,66 +39,81 @@ use_model = None
 
 
 def init_models():
-    """Initialize models on startup"""
-    global model, mlb
+    """Initialize models at startup"""
+    global model, mlb, use_model
+
     try:
         logger.info("Starting model loading...")
 
-        # Get the absolute path to the models directory
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(current_dir)
-        models_dir = os.path.join(project_root, "models")
-
+        # Log current working directory and paths
         logger.info(f"Current working directory: {os.getcwd()}")
-        logger.info(f"Current script directory: {current_dir}")
-        logger.info(f"Project root: {project_root}")
-        logger.info(f"Models directory: {models_dir}")
+        logger.info(
+            f"Current script directory: {os.path.dirname(os.path.abspath(__file__))}")
+        logger.info(
+            f"Project root: {os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}")
 
-        # List all files in the models directory
-        logger.info(f"Files in models directory: {os.listdir(models_dir)}")
-
+        # Construct absolute paths
+        project_root = os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))
+        models_dir = os.path.join(project_root, "models")
         model_path = os.path.join(models_dir, "model.pkl")
         mlb_path = os.path.join(models_dir, "mlb.pkl")
 
-        # Log file sizes
-        logger.info(
-            f"File model.pkl size: {os.path.getsize(model_path)} bytes")
-        logger.info(f"File mlb.pkl size: {os.path.getsize(mlb_path)} bytes")
+        logger.info(f"Models directory: {models_dir}")
+        logger.info(f"Files in models directory: {os.listdir(models_dir)}")
+
+        # Check if files exist and log their sizes
+        if os.path.exists(model_path):
+            logger.info(
+                f"File model.pkl size: {os.path.getsize(model_path)} bytes")
+        if os.path.exists(mlb_path):
+            logger.info(
+                f"File mlb.pkl size: {os.path.getsize(mlb_path)} bytes")
 
         logger.info(f"Attempting to load model from: {model_path}")
         logger.info(f"Model file exists: {os.path.exists(model_path)}")
         logger.info(f"MLB file exists: {os.path.exists(mlb_path)}")
-        logger.info(f"Model file size: {os.path.getsize(model_path)} bytes")
-        logger.info(f"MLB file size: {os.path.getsize(mlb_path)} bytes")
 
-        # Load the model with pickle instead of joblib
-        with open(model_path, 'rb') as f:
-            model = pickle.load(f)
-            # Создаем новый экземпляр XGBClassifier с теми же параметрами
-            if isinstance(model, xgboost.XGBClassifier):
-                model_params = model.get_params()
-                # Добавляем параметр use_label_encoder
-                model_params['use_label_encoder'] = False
-                model = xgboost.XGBClassifier(**model_params)
-                # Копируем внутренний бустер
-                model._Booster = model._Booster
-                # Устанавливаем атрибуты, которые могут быть необходимы
-                model._le = model._le if hasattr(model, '_le') else None
-                model._estimator_type = 'classifier'
+        if os.path.exists(model_path):
             logger.info(
-                f"✓ model.pkl loaded successfully. Type: {type(model)}")
+                f"Model file size: {os.path.getsize(model_path)} bytes")
+        if os.path.exists(mlb_path):
+            logger.info(f"MLB file size: {os.path.getsize(mlb_path)} bytes")
 
-        logger.info("Loading mlb.pkl...")
-        with open(mlb_path, 'rb') as f:
-            mlb = pickle.load(f)
-            logger.info(f"✓ mlb.pkl loaded successfully. Type: {type(mlb)}")
+        # Load XGBoost model
+        try:
+            with open(model_path, 'rb') as f:
+                model_data = f.read()
+                model = xgb.XGBClassifier()
+                model.load_model(model_data)
+                logger.info("✓ XGBoost model loaded successfully")
+        except Exception as e:
+            logger.error(f"Error loading XGBoost model: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
-        logger.info(
-            "Model loading complete (USE model will be loaded on first use)!")
+        # Load MLB
+        try:
+            with open(mlb_path, 'rb') as f:
+                mlb = pickle.load(f)
+                logger.info("✓ MLB loaded successfully")
+        except Exception as e:
+            logger.error(f"Error loading MLB: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
+
+        # Load USE model
+        try:
+            use_model = hub.load(
+                "https://tfhub.dev/google/universal-sentence-encoder/4")
+            logger.info("✓ USE model loaded successfully")
+        except Exception as e:
+            logger.error(f"Error loading USE model: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
     except Exception as e:
         logger.error(f"Error during model loading: {str(e)}")
-        logger.error(f"Exception type: {type(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise
 
@@ -170,15 +187,6 @@ async def root():
     return {"message": "API is running"}
 
 
-try:
-    use_model = hub.load(
-        "https://tfhub.dev/google/universal-sentence-encoder/4")
-    logger.info("✓ USE model loaded successfully")
-except Exception as e:
-    logger.error(f"Error loading USE model: {str(e)}")
-    raise
-
-
 def get_embeddings(texts: List[str]) -> np.ndarray:
     """Get embeddings from USE model"""
     try:
@@ -241,11 +249,11 @@ def load_model():
         with open(model_path, 'rb') as f:
             model = pickle.load(f)
             # Создаем новый экземпляр XGBClassifier с теми же параметрами
-            if isinstance(model, xgboost.XGBClassifier):
+            if isinstance(model, xgb.XGBClassifier):
                 model_params = model.get_params()
                 # Добавляем параметр use_label_encoder
                 model_params['use_label_encoder'] = False
-                model = xgboost.XGBClassifier(**model_params)
+                model = xgb.XGBClassifier(**model_params)
                 # Копируем внутренний бустер
                 model._Booster = model._Booster
                 # Устанавливаем атрибуты, которые могут быть необходимы
