@@ -44,6 +44,7 @@ WORKDIR /app
 
 # Copy only necessary files
 COPY api/ api/
+COPY models/ models/
 
 # Create logs directory
 RUN mkdir -p logs
@@ -52,8 +53,9 @@ RUN mkdir -p logs
 ENV API_PORT=3000
 ENV PYTHONPATH=/app
 
+# Add healthcheck
 HEALTHCHECK --interval=15s --timeout=10s --start-period=160s --retries=5 \
-  CMD curl -f http://localhost:3000/health || exit 1
+    CMD curl -f http://localhost:3000/health || exit 1
 
 # Run uvicorn with optimized settings
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000", "--workers", "1", "--limit-concurrency", "100", "--timeout-keep-alive", "30", "--log-level", "info"]
