@@ -28,12 +28,30 @@ session.mount("https://", adapter)
 def start_local_server():
     """Start the local API server for testing"""
     try:
-        # Start the server in a subprocess
+        # Calculate the absolute path to the project root
+        # This script is in tests/, so two levels up is the root
+        project_root = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..'))
+
+        # Check for models before starting (paths relative to project root)
+        assert os.path.exists(os.path.join(
+            project_root, "models/model.pkl")), "model.pkl not found!"
+        assert os.path.exists(os.path.join(
+            project_root, "models/mlb.pkl")), "mlb.pkl not found!"
+
+        # Configure environment variables
+        env = os.environ.copy()
+        # Ensure PYTHONPATH includes the project root
+        # This is crucial for uvicorn api.main:app to find the 'api' package
+        env["PYTHONPATH"] = project_root
+
+        # Start Uvicorn server in the background
         process = subprocess.Popen(
-            ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3000"],
+            ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd="../api"  
+            cwd=project_root,  # Set CWD to project root
+            env=env
         )
         return process
     except Exception as e:
