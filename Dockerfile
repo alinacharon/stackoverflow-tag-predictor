@@ -52,9 +52,6 @@ RUN mkdir -p logs
 ENV API_PORT=3000
 ENV PYTHONPATH=/app
 
-# Pre-download USE model
-RUN python -c "import tensorflow_hub as hub; hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')"
-
 # Add healthcheck
 HEALTHCHECK --interval=15s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:3000/health || exit 1

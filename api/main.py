@@ -101,12 +101,12 @@ def init_models():
         mlb = joblib.load(mlb_path)
         logger.info(f"✓ mlb.pkl loaded successfully. Type: {type(mlb)}")
 
-        logger.info("Loading USE embedding model...")
-        use_model = hub.load(
-            "https://tfhub.dev/google/universal-sentence-encoder/4")
-        logger.info("✓ USE model loaded successfully")
+        # Lazy load USE embedding model - it will be loaded on first prediction
+        # use_model = hub.load("https://tfhub.dev/google/universal-sentence-encoder-lite/2")
+        # logger.info("✓ USE model loaded successfully")
 
-        logger.info("All models loaded successfully!")
+        logger.info(
+            "Model loading complete (USE model will be loaded on first use)!")
 
     except Exception as e:
         logger.error(f"Error during model loading: {e}")
@@ -189,8 +189,20 @@ async def root():
 def predict(question: Question):
     try:
         global model, mlb, use_model
-        if model is None or mlb is None or use_model is None:
-            raise HTTPException(status_code=500, detail="Model not loaded")
+        if model is None or mlb is None:
+            raise HTTPException(
+                status_code=500, detail="Core models not loaded")
+
+        if use_model is None:
+            logger.info("Loading USE embedding model on first use...")
+            try:
+                use_model = hub.load(
+                    "https://tfhub.dev/google/universal-sentence-encoder-lite/2")
+                logger.info("✓ USE model loaded successfully on first use.")
+            except Exception as e:
+                logger.error(f"Error loading USE model: {e}")
+                raise HTTPException(
+                    status_code=500, detail=f"Failed to load USE model: {str(e)}")
 
         logger.info(f"Original text: '{question.text}'")
         start_time = time.time()
