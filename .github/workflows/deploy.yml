@@ -15,54 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Pull Git LFS files
         run: git lfs pull
-
-      - name: Debug - List root directory contents
-        run: |
-          set -x
-          pwd
-          ls -l
-
-      - name: Debug - List API directory contents
-        run: |
-          set -x
-          pwd api/
-          ls -l api/
-
-      - name: Debug - List models directory contents
-        run: |
-          set -x
-          pwd models/
-          ls -l models/
-
-      - name: Debug - Print main.py hash
-        run: |
-          set -x
-          sha256sum api/main.py || true
-
-      - name: Debug - Print api/main.py content
-        run: |
-          set -x
-          cat api/main.py
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-
-      - name: Clear Python cache
-        run: |
-          find . -type d -name "__pycache__" -exec rm -rf {} + || true
-          find . -type f -name "*.pyc" -delete || true
-
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-
-      - name: Debug - Print test_api.py content
-        run: |
-          set -x
-          cat tests/test_api.py
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
@@ -72,14 +32,14 @@ jobs:
 
       - name: Download NLTK data
         run: |
-          python -c "import nltk; nltk.download('punkt'); nltk.download('averaged_perceptron_tagger'); nltk.download('wordnet'); nltk.download('stopwords'); nltk.download('averaged_perceptron_tagger_eng')"
-
-      - name: Wait for file sync (optional debug)
-        run: sleep 5
+          python -c "import nltk; \
+            nltk.download('punkt'); \
+            nltk.download('averaged_perceptron_tagger'); \
+            nltk.download('wordnet'); \
+            nltk.download('stopwords'); \
+            nltk.download('averaged_perceptron_tagger_eng')"
 
       - name: Run tests
-        env:
-          AWS_API_URL: http://localhost:3000
         run: |
           pytest tests/ -v --cov=api
 
@@ -113,21 +73,18 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - name: Deploy to server
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Pull the latest image
             docker pull ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
 
-            # Stop and remove the old container if it exists
             docker stop stackoverflow-predictor || true
             docker rm stackoverflow-predictor || true
 
-            # Run the new container
             docker run -d \
               --name stackoverflow-predictor \
               --restart unless-stopped \
@@ -135,5 +92,4 @@ jobs:
               -v /app/logs:/app/logs \
               ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
 
-            # Clean up old images
             docker image prune -f
