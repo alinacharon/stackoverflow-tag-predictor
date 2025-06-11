@@ -30,10 +30,10 @@ def start_local_server():
     try:
         # Start the server in a subprocess
         process = subprocess.Popen(
-            ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3000"],
+            ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd="./api"  # Ensure uvicorn runs from the correct directory
+            cwd="." 
         )
         return process
     except Exception as e:
