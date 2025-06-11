@@ -1,4 +1,4 @@
-from logger import logger
+from .logger import logger
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords, wordnet
 from nltk.tokenize import TreebankWordTokenizer
