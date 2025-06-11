@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Pull Git LFS files
+        run: git lfs pull
 
       - name: Set up Python
         uses: actions/setup-python@v5
