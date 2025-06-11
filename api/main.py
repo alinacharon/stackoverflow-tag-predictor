@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-import logging
 import os
 import time
 from contextlib import asynccontextmanager
@@ -14,27 +13,13 @@ from nltk import pos_tag
 from nltk.tokenize import TreebankWordTokenizer
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
+from logger import logger
 
 # nltk
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 nltk.download('wordnet')
 nltk.download('stopwords')
-
-
-# logs
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(
-            'logs/api.log') if os.path.exists('logs') else logging.StreamHandler(),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
-
-PORT = int(os.getenv('API_PORT', '3000'))
 
 model = None
 mlb = None

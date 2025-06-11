@@ -35,6 +35,9 @@ RUN python -c "import nltk; \
 # Final stage
 FROM python:3.10-slim
 
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -46,12 +49,19 @@ WORKDIR /app
 COPY api/ api/
 COPY models/ models/
 
-# Create logs directory
-RUN mkdir -p logs
+# Create logs directory with proper permissions
+RUN mkdir -p logs && \
+    chown -R appuser:appuser logs && \
+    chmod 755 logs
 
-# Export port
+# Set environment variables
 ENV API_PORT=3000
 ENV PYTHONPATH=/app
+ENV LOG_LEVEL=info
+ENV LOG_DIR=/app/logs
+
+# Switch to non-root user
+USER appuser
 
 # Add healthcheck
 HEALTHCHECK --interval=15s --timeout=10s --start-period=160s --retries=5 \
