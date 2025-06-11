@@ -37,69 +37,66 @@ use_model = None
 
 
 def init_models():
-    global model, mlb, use_model
+    """Initialize models on startup"""
+    global model, mlb
     try:
         logger.info("Starting model loading...")
+
+        # Get the absolute path to the models directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        models_dir = os.path.join(project_root, "models")
+
         logger.info(f"Current working directory: {os.getcwd()}")
-
-        # Determine the absolute path to the directory containing main.py
-        current_script_dir = os.path.dirname(os.path.abspath(__file__))
-        logger.info(f"Current script directory: {current_script_dir}")
-
-        # Construct the path to the 'models' directory
-        project_root = os.path.dirname(current_script_dir)
-        models_dir = os.path.join(project_root, 'models')
+        logger.info(f"Current script directory: {current_dir}")
         logger.info(f"Project root: {project_root}")
         logger.info(f"Models directory: {models_dir}")
 
-        # List all files in models directory
-        if os.path.exists(models_dir):
-            logger.info(f"Files in models directory: {os.listdir(models_dir)}")
-            # Check file sizes
-            for file in os.listdir(models_dir):
-                file_path = os.path.join(models_dir, file)
-                size = os.path.getsize(file_path)
-                logger.info(f"File {file} size: {size} bytes")
-        else:
-            logger.error(f"Models directory does not exist: {models_dir}")
+        # List all files in the models directory
+        logger.info(f"Files in models directory: {os.listdir(models_dir)}")
 
-        # Load models directly from local path
-        model_path = os.path.join(models_dir, 'model.pkl')
-        mlb_path = os.path.join(models_dir, 'mlb.pkl')
+        model_path = os.path.join(models_dir, "model.pkl")
+        mlb_path = os.path.join(models_dir, "mlb.pkl")
+
+        # Log file sizes
+        logger.info(
+            f"File model.pkl size: {os.path.getsize(model_path)} bytes")
+        logger.info(f"File mlb.pkl size: {os.path.getsize(mlb_path)} bytes")
 
         logger.info(f"Attempting to load model from: {model_path}")
         logger.info(f"Model file exists: {os.path.exists(model_path)}")
         logger.info(f"MLB file exists: {os.path.exists(mlb_path)}")
+        logger.info(f"Model file size: {os.path.getsize(model_path)} bytes")
+        logger.info(f"MLB file size: {os.path.getsize(mlb_path)} bytes")
 
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model file not found at {model_path}")
-        if not os.path.exists(mlb_path):
-            raise FileNotFoundError(f"MLB file not found at {mlb_path}")
-
-        # Check file sizes before loading
-        model_size = os.path.getsize(model_path)
-        mlb_size = os.path.getsize(mlb_path)
-        logger.info(f"Model file size: {model_size} bytes")
-        logger.info(f"MLB file size: {mlb_size} bytes")
-
-        if model_size < 1000 or mlb_size < 1000:  # Assuming models should be at least 1KB
-            raise ValueError(
-                f"Model files seem too small. Model: {model_size} bytes, MLB: {mlb_size} bytes")
-
-        model = joblib.load(model_path)
-        logger.info(f"✓ model.pkl loaded successfully. Type: {type(model)}")
+        # Load the model with pickle instead of joblib
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
+            # Создаем новый экземпляр XGBClassifier с теми же параметрами
+            if isinstance(model, xgboost.XGBClassifier):
+                model_params = model.get_params()
+                # Добавляем параметр use_label_encoder
+                model_params['use_label_encoder'] = False
+                model = xgboost.XGBClassifier(**model_params)
+                # Копируем внутренний бустер
+                model._Booster = model._Booster
+                # Устанавливаем атрибуты, которые могут быть необходимы
+                model._le = model._le if hasattr(model, '_le') else None
+                model._estimator_type = 'classifier'
+            logger.info(
+                f"✓ model.pkl loaded successfully. Type: {type(model)}")
 
         logger.info("Loading mlb.pkl...")
-        mlb = joblib.load(mlb_path)
-        logger.info(f"✓ mlb.pkl loaded successfully. Type: {type(mlb)}")
+        with open(mlb_path, 'rb') as f:
+            mlb = pickle.load(f)
+            logger.info(f"✓ mlb.pkl loaded successfully. Type: {type(mlb)}")
 
         logger.info(
             "Model loading complete (USE model will be loaded on first use)!")
 
     except Exception as e:
-        logger.error(f"Error during model loading: {e}")
+        logger.error(f"Error during model loading: {str(e)}")
         logger.error(f"Exception type: {type(e)}")
-        import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise
 
