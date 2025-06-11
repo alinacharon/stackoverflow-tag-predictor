@@ -32,7 +32,8 @@ def start_local_server():
         process = subprocess.Popen(
             ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000"],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            cwd="./api"  # Ensure uvicorn runs from the correct directory
         )
         return process
     except Exception as e:
@@ -40,7 +41,7 @@ def start_local_server():
         raise
 
 
-def wait_for_server(url: str, max_retries: int = 5, delay: int = 2):
+def wait_for_server(url: str, max_retries: int = 20, delay: int = 5):
     """Wait for server to be ready with improved error handling"""
     for i in range(max_retries):
         try:
@@ -63,6 +64,10 @@ def setup_server():
 
     # Wait for server to be ready
     if not wait_for_server(API_URL):
+        stderr = server_process.stderr.read().decode()
+        stdout = server_process.stdout.read().decode()
+        logger.error(f"Uvicorn stderr: {stderr}")
+        logger.error(f"Uvicorn stdout: {stdout}")
         server_process.terminate()
         pytest.fail("Failed to start local server")
 
