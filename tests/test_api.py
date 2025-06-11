@@ -33,7 +33,7 @@ def start_local_server():
             ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3000"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd="../api/main.py"  
+            cwd="../api"  
         )
         return process
     except Exception as e:
