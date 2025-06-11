@@ -131,6 +131,15 @@ def test_predict_valid_text():
         logger.info(f"Response headers: {response.headers}")
         logger.info(f"Response body: {response.text}")
 
+        if response.status_code != 200:
+            logger.error(f"Server error response: {response.text}")
+            # Get server logs
+            server_process = start_local_server()
+            stderr = server_process.stderr.read().decode()
+            stdout = server_process.stdout.read().decode()
+            logger.error(f"Server stderr: {stderr}")
+            logger.error(f"Server stdout: {stdout}")
+
         assert response.status_code == 200
         data = response.json()
         assert "tags" in data

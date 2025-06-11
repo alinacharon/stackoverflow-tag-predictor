@@ -21,15 +21,32 @@ jobs:
           sudo apt-get update
           sudo apt-get install git-lfs
           git lfs install
-          git lfs pull
+          git lfs version
+          git lfs ls-files
 
       - name: Pull Git LFS files
-        run: git lfs pull
+        run: |
+          echo "Pulling Git LFS files..."
+          git lfs pull
+          echo "Git LFS files pulled. Listing files:"
+          git lfs ls-files
+          echo "Checking file sizes:"
+          ls -lh models/
+
+      - name: Verify model files
+        run: |
+          echo "Checking model files..."
+          ls -la models/
+          if [ ! -f "models/model.pkl" ] || [ ! -f "models/mlb.pkl" ]; then
+            echo "Error: Model files are missing!"
+            exit 1
+          fi
+          echo "Model files found successfully"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
@@ -100,5 +117,3 @@ jobs:
               ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
 
             docker image prune -f
-
-            

@@ -38,17 +38,48 @@ def init_models():
 
         # Determine the absolute path to the directory containing main.py
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
+        logger.info(f"Current script directory: {current_script_dir}")
 
         # Construct the path to the 'models' directory
         project_root = os.path.dirname(current_script_dir)
         models_dir = os.path.join(project_root, 'models')
+        logger.info(f"Project root: {project_root}")
+        logger.info(f"Models directory: {models_dir}")
+
+        # List all files in models directory
+        if os.path.exists(models_dir):
+            logger.info(f"Files in models directory: {os.listdir(models_dir)}")
+            # Check file sizes
+            for file in os.listdir(models_dir):
+                file_path = os.path.join(models_dir, file)
+                size = os.path.getsize(file_path)
+                logger.info(f"File {file} size: {size} bytes")
+        else:
+            logger.error(f"Models directory does not exist: {models_dir}")
 
         # Load models directly from local path
         model_path = os.path.join(models_dir, 'model.pkl')
         mlb_path = os.path.join(models_dir, 'mlb.pkl')
 
         logger.info(f"Attempting to load model from: {model_path}")
-        logger.info(f"DEBUG: models_dir computed as: {models_dir}")
+        logger.info(f"Model file exists: {os.path.exists(model_path)}")
+        logger.info(f"MLB file exists: {os.path.exists(mlb_path)}")
+
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model file not found at {model_path}")
+        if not os.path.exists(mlb_path):
+            raise FileNotFoundError(f"MLB file not found at {mlb_path}")
+
+        # Check file sizes before loading
+        model_size = os.path.getsize(model_path)
+        mlb_size = os.path.getsize(mlb_path)
+        logger.info(f"Model file size: {model_size} bytes")
+        logger.info(f"MLB file size: {mlb_size} bytes")
+
+        if model_size < 1000 or mlb_size < 1000:  # Assuming models should be at least 1KB
+            raise ValueError(
+                f"Model files seem too small. Model: {model_size} bytes, MLB: {mlb_size} bytes")
+
         model = joblib.load(model_path)
         logger.info(f"✓ model.pkl loaded successfully. Type: {type(model)}")
 
