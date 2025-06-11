@@ -28,21 +28,12 @@ session.mount("https://", adapter)
 def start_local_server():
     """Start the local API server for testing"""
     try:
-        # Check for models before starting
-        assert os.path.exists("models/model.pkl"), "model.pkl not found!"
-        assert os.path.exists("models/mlb.pkl"), "mlb.pkl not found!"
-
-        # Configure environment variables
-        env = os.environ.copy()
-        env["PYTHONPATH"] = os.getcwd()
-
-        # Start Uvicorn server in the background
+        # Start the server in a subprocess
         process = subprocess.Popen(
-            ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000"],
+            ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3000"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=".",
-            env=env
+            cwd="../api/main.py"  
         )
         return process
     except Exception as e:
@@ -68,24 +59,21 @@ def wait_for_server(url: str, max_retries: int = 20, delay: int = 5):
 @pytest.fixture(scope="session", autouse=True)
 def setup_server():
     """Setup and teardown of the local test server"""
+    # Start the server
     server_process = start_local_server()
 
+    # Wait for server to be ready
     if not wait_for_server(API_URL):
-        stderr = (server_process.stderr.read() or b"").decode()
-        stdout = (server_process.stdout.read() or b"").decode()
-        logger.error(
-            f"Uvicorn failed to start.\n--- STDOUT ---\n{stdout}\n--- STDERR ---\n{stderr}")
+        stderr = server_process.stderr.read().decode()
+        stdout = server_process.stdout.read().decode()
+        logger.error(f"Uvicorn stderr: {stderr}")
+        logger.error(f"Uvicorn stdout: {stdout}")
         server_process.terminate()
         pytest.fail("Failed to start local server")
 
     yield
 
-    # After tests — log and shutdown
-    stderr = (server_process.stderr.read() or b"").decode()
-    stdout = (server_process.stdout.read() or b"").decode()
-    logger.info(f"Uvicorn stdout:\n{stdout}")
-    logger.info(f"Uvicorn stderr:\n{stderr}")
-
+    # Cleanup: stop the server
     server_process.terminate()
     server_process.wait()
 
@@ -102,14 +90,19 @@ def test_health_check():
 
 def test_predict_valid_text():
     """Test prediction for valid text input"""
-    logger.info("Running test_predict_valid_text")
+    logger.info("Starting test_predict_valid_text")
     test_text = "How to use Python dictionaries effectively?"
 
     try:
         payload = {"text": test_text}
-        response = session.post(f"{API_URL}/predict", json=payload, timeout=30)
+        response = session.post(
+            f"{API_URL}/predict",
+            json=payload,
+            timeout=30
+        )
 
         logger.info(f"Response status: {response.status_code}")
+        logger.info(f"Response headers: {response.headers}")
         logger.info(f"Response body: {response.text}")
 
         assert response.status_code == 200
@@ -118,7 +111,8 @@ def test_predict_valid_text():
         assert isinstance(data["tags"], list)
         assert len(data["tags"]) > 0, "No tags were predicted"
 
-        logger.info(f"Tags predicted: {data['tags']}")
+        logger.info(f"Successfully predicted tags: {data['tags']}")
+
     except requests.exceptions.RequestException as e:
         pytest.fail(f"Prediction request failed: {str(e)}")
     except AssertionError as e:
@@ -129,7 +123,11 @@ def test_predict_empty_text():
     """Test prediction for empty text input"""
     try:
         payload = {"text": ""}
-        response = session.post(f"{API_URL}/predict", json=payload, timeout=10)
+        response = session.post(
+            f"{API_URL}/predict",
+            json=payload,
+            timeout=10
+        )
         assert response.status_code == 422
         assert "detail" in response.json()
     except requests.exceptions.RequestException as e:
@@ -138,14 +136,19 @@ def test_predict_empty_text():
 
 def test_predict_invalid_text():
     """Test prediction for invalid text input"""
-    logger.info("Running test_predict_invalid_text")
+    logger.info("Starting test_predict_invalid_text")
     test_text = "!!!@@@###"
 
     try:
         payload = {"text": test_text}
-        response = session.post(f"{API_URL}/predict", json=payload, timeout=60)
+        response = session.post(
+            f"{API_URL}/predict",
+            json=payload,
+            timeout=60
+        )
 
         logger.info(f"Response status: {response.status_code}")
+        logger.info(f"Response headers: {response.headers}")
         logger.info(f"Response body: {response.text}")
 
         assert response.status_code in [200, 400]
@@ -154,7 +157,7 @@ def test_predict_invalid_text():
             data = response.json()
             assert "tags" in data
             assert isinstance(data["tags"], list)
-            logger.info(f"Tags for invalid text: {data['tags']}")
+            logger.info(f"Received tags for invalid text: {data['tags']}")
 
     except requests.exceptions.RequestException as e:
         pytest.fail(f"Invalid text test failed: {str(e)}")
@@ -162,7 +165,7 @@ def test_predict_invalid_text():
 
 def test_server_performance():
     """Test server performance with multiple concurrent requests"""
-    logger.info("Running test_server_performance")
+    logger.info("Starting performance test")
     test_texts = [
         "How to use Python dictionaries effectively?",
         "What is the best way to learn machine learning?",
@@ -176,15 +179,21 @@ def test_server_performance():
         try:
             payload = {"text": text}
             response = session.post(
-                f"{API_URL}/predict", json=payload, timeout=30)
+                f"{API_URL}/predict",
+                json=payload,
+                timeout=30
+            )
             if response.status_code == 200:
                 successful_requests += 1
         except requests.exceptions.RequestException:
             continue
 
-    total_time = time.time() - start_time
+    end_time = time.time()
+    total_time = end_time - start_time
+
+    logger.info(f"Performance test completed in {total_time:.2f} seconds")
     logger.info(
-        f"Completed in {total_time:.2f} sec | Success: {successful_requests}/{len(test_texts)}")
+        f"Successful requests: {successful_requests}/{len(test_texts)}")
 
     assert successful_requests > 0, "No successful requests in performance test"
     assert total_time < 90, "Performance test took too long"
