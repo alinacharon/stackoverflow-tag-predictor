@@ -212,19 +212,19 @@ async def predict(request: Request):
 
         if not text:
             raise HTTPException(
-                status_code=400,
+                status_code=422,
                 detail="Text is required"
             )
 
         if not isinstance(text, str):
             raise HTTPException(
-                status_code=400,
+                status_code=422,
                 detail="Text must be a string"
             )
 
         if len(text) > 10000:
             raise HTTPException(
-                status_code=400,
+                status_code=422,
                 detail="Text is too long (max 10000 characters)"
             )
 
@@ -238,7 +238,6 @@ async def predict(request: Request):
                 detail=f"Error getting embeddings: {str(e)}"
             )
 
-        # Получаем предсказания
         try:
             predictions = model.predict(embeddings)
             logger.info(f"Raw predictions shape: {predictions.shape}")
