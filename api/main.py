@@ -196,12 +196,13 @@ def predict(question: Question):
                 status_code=400, detail="Invalid input text after cleaning")
 
         try:
-            # Get the embedding function from the model
-            embed_fn = use_model.signatures['default']
-
             # Convert text to tensor and get embeddings
             text_input = tf.constant([cleaned_text])
-            embeddings = embed_fn(text_input)['outputs']
+
+            # Get embeddings using the model's __call__ method
+            embeddings = use_model(text_input)
+            if isinstance(embeddings, dict):
+                embeddings = embeddings['outputs']
             embeddings = embeddings.numpy()  # Convert tensor to numpy array
 
             prediction = model.predict(embeddings)
