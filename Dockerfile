@@ -19,7 +19,16 @@ COPY requirements.txt .
 # Install dependencies in virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install dependencies in smaller chunks to manage memory better
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir numpy scipy && \
+    pip install --no-cache-dir tensorflow tensorflow-hub && \
+    pip install --no-cache-dir xgboost scikit-learn && \
+    pip install --no-cache-dir fastapi uvicorn && \
+    pip install --no-cache-dir boto3 python-dotenv && \
+    pip install --no-cache-dir pytest pytest-cov pytest-timeout pytest-xdist && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Download NLTK data
 RUN python -c "import nltk; \
