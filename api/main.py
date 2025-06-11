@@ -196,9 +196,12 @@ def predict(question: Question):
                 status_code=400, detail="Invalid input text after cleaning")
 
         try:
+            # Get the embedding function from the model
+            embed_fn = use_model.signatures['default']
+
             # Convert text to tensor and get embeddings
             text_input = tf.constant([cleaned_text])
-            embeddings = use_model(text_input)
+            embeddings = embed_fn(text_input)['outputs']
             embeddings = embeddings.numpy()  # Convert tensor to numpy array
 
             prediction = model.predict(embeddings)
@@ -215,6 +218,9 @@ def predict(question: Question):
 
         except Exception as e:
             logger.error(f"Error during prediction: {str(e)}")
+            logger.error(f"Exception type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=str(e))
 
     except HTTPException:
