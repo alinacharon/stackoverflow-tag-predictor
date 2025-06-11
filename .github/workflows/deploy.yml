@@ -22,7 +22,7 @@ jobs:
           sudo apt-get install git-lfs
           git lfs install
           git lfs pull
-          
+
       - name: Pull Git LFS files
         run: git lfs pull
 
@@ -100,3 +100,5 @@ jobs:
               ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
 
             docker image prune -f
+
+            
