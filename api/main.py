@@ -194,3 +194,4 @@ async def health_check():
     if model is not None and mlb is not None:
         return {'status': 'healthy'}
     return {'status': 'error', 'message': 'Models not loaded'}
+
