@@ -22,6 +22,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Force CPU usage for TensorFlow
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'  # Enable all TensorFlow logging
 
 # nltk
 nltk.download('punkt')
@@ -99,9 +100,32 @@ def init_models():
 
         # Load USE model
         logger.info("Loading USE embedding model...")
-        use_model = hub.load(os.getenv(
-            'USE_MODEL_URL', "https://tfhub.dev/google/universal-sentence-encoder/4"))
-        logger.info("✓ USE model loaded successfully")
+        try:
+            import tensorflow as tf
+            logger.info(f"TensorFlow version: {tf.__version__}")
+            logger.info(
+                f"TensorFlow devices: {tf.config.list_physical_devices()}")
+
+            use_model_url = os.getenv(
+                'USE_MODEL_URL', "https://tfhub.dev/google/universal-sentence-encoder/4")
+            logger.info(f"Loading USE model from: {use_model_url}")
+
+            use_model = hub.load(use_model_url)
+            logger.info("✓ USE model loaded successfully")
+
+            # Test the model
+            test_text = ["Test sentence"]
+            logger.info("Testing USE model with sample text...")
+            embeddings = use_model(test_text)
+            logger.info(f"Test embeddings shape: {embeddings.shape}")
+            logger.info("✓ USE model test successful")
+
+        except Exception as e:
+            logger.error(f"Failed to load USE model: {str(e)}")
+            logger.error(f"Exception type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
         logger.info("Model loading complete!")
 
