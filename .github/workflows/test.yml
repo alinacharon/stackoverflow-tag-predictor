@@ -17,18 +17,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install tensorflow-cpu==2.15.0 tensorflow-hub==0.15.0
 
       - name: Pre-download USE model
         run: |
           echo "Pre-downloading USE model..."
-          python -c "import tensorflow_hub as hub; hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')"
+          python -c "import tensorflow as tf; tf.config.set_visible_devices([], 'GPU'); import tensorflow_hub as hub; model = hub.load('https://tfhub.dev/google/universal-sentence-encoder/4'); print('Model loaded successfully')"
 
       - name: Verify model files
         run: |

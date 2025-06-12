@@ -1,5 +1,5 @@
 # Use multi-stage build
-FROM python:3.12-slim AS builder
+FROM python:3.11-slim AS builder
 
 # Install only necessary system dependencies
 RUN apt-get update && apt-get install -y \
@@ -33,12 +33,10 @@ RUN python -c "import nltk; \
     nltk.download('averaged_perceptron_tagger_eng')"
 
 # Pre-download USE model
-ARG USE_MODEL_URL="https://tfhub.dev/google/universal-sentence-encoder/4"
-ENV USE_MODEL_URL=${USE_MODEL_URL}
-RUN python -c "import tensorflow_hub as hub; hub.load('${USE_MODEL_URL}')"
+RUN python -c "import tensorflow_hub as hub; hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')"
 
 # Final stage
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
@@ -65,7 +63,6 @@ ENV PYTHONPATH=/app
 ENV LOG_LEVEL=info
 ENV LOG_DIR=/app/logs
 ENV TFHUB_CACHE_DIR=/home/appuser/.cache/tfhub_modules
-ENV USE_MODEL_URL=${USE_MODEL_URL}
 
 # Switch to non-root user
 USER appuser

@@ -555,3 +555,161 @@ _pickle.UnpicklingError: STACK_GLOBAL requires str
 2025-06-12 13:22:29,813 - api.logger - INFO - Prediction done in 0.030 sec. Tags: ('python-2.7',)
 2025-06-12 13:22:29,818 - api.logger - INFO - Original text: 'How to deploy a Docker container?'
 2025-06-12 13:22:29,849 - api.logger - INFO - Prediction done in 0.030 sec. Tags: ('docker',)
+2025-06-12 14:00:32,241 - api.logger - INFO - Starting model loading...
+2025-06-12 14:00:32,242 - api.logger - INFO - Current working directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api
+2025-06-12 14:00:32,242 - api.logger - INFO - Directory contents: ['awscliv2.zip', '.DS_Store', 'requirements.txt', '.pytest_cache', 'Dockerfile', 'tests', 'models', 'README.md', 'Pipfile', 'logs', '.gitignore', '.env', '.venv', '.github', '.gitattributes', 'api', 'aws', '.git', 'Pipfile.lock']
+2025-06-12 14:00:32,242 - api.logger - INFO - Current script directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/api
+2025-06-12 14:00:32,242 - api.logger - INFO - Models directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models
+2025-06-12 14:00:32,242 - api.logger - INFO - Models directory contents: ['mlb.pkl', 'model.pkl']
+2025-06-12 14:00:32,242 - api.logger - INFO - Model path: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models/model.pkl
+2025-06-12 14:00:32,242 - api.logger - INFO - MLB path: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models/mlb.pkl
+2025-06-12 14:00:32,242 - api.logger - INFO - Model file exists: True
+2025-06-12 14:00:32,242 - api.logger - INFO - MLB file exists: True
+2025-06-12 14:00:32,242 - api.logger - INFO - Model file size: 149858116
+2025-06-12 14:00:32,242 - api.logger - INFO - MLB file size: 14320
+2025-06-12 14:00:33,103 - api.logger - INFO - ✓ model.pkl loaded successfully via joblib. Type: <class 'xgboost.sklearn.XGBClassifier'>
+2025-06-12 14:00:33,103 - api.logger - INFO - Loading mlb.pkl...
+2025-06-12 14:00:33,107 - api.logger - INFO - ✓ mlb.pkl loaded successfully via joblib. Type: <class 'sklearn.preprocessing._label.MultiLabelBinarizer'>
+2025-06-12 14:00:33,107 - api.logger - INFO - Loading USE model from: https://tfhub.dev/google/universal-sentence-encoder/4
+2025-06-12 14:00:37,070 - api.logger - INFO - ✓ USE model loaded successfully
+2025-06-12 14:00:37,070 - api.logger - INFO - Testing USE model with sample text...
+2025-06-12 14:00:37,236 - api.logger - INFO - Test embeddings shape: (1, 512)
+2025-06-12 14:00:37,236 - api.logger - INFO - ✓ USE model test successful
+2025-06-12 14:00:37,236 - api.logger - INFO - Model loading complete!
+2025-06-12 14:00:37,681 - api.logger - INFO - Starting prediction...
+2025-06-12 14:00:37,682 - api.logger - INFO - Model loaded: True
+2025-06-12 14:00:37,682 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:00:37,682 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:00:37,682 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 14:00:38,998 - api.logger - INFO - Cleaned text: 'implement binary search tree python'
+2025-06-12 14:00:38,999 - api.logger - INFO - Getting embeddings...
+2025-06-12 14:00:39,001 - api.logger - INFO - Making prediction...
+2025-06-12 14:00:39,053 - api.logger - INFO - Raw prediction: [[0. 0. 0. ... 0. 0. 0.]]
+2025-06-12 14:00:39,054 - api.logger - INFO - Transformed tags: ('python',)
+2025-06-12 14:00:39,054 - api.logger - INFO - Prediction done in 1.372 sec. Tags: ('python',)
+2025-06-12 14:00:39,059 - api.logger - INFO - Starting prediction...
+2025-06-12 14:00:39,059 - api.logger - INFO - Model loaded: True
+2025-06-12 14:00:39,059 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:00:39,059 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:00:39,059 - api.logger - INFO - Original text: '!!!@@@###'
+2025-06-12 14:00:39,059 - api.logger - INFO - Cleaned text: ''
+2025-06-12 14:00:39,059 - api.logger - ERROR - Text is empty after cleaning
+2025-06-12 14:00:39,059 - api.logger - ERROR - Error during prediction: 400: Invalid input text after cleaning
+2025-06-12 14:00:39,059 - api.logger - ERROR - Exception type: <class 'fastapi.exceptions.HTTPException'>
+2025-06-12 14:00:39,059 - api.logger - ERROR - Traceback: Traceback (most recent call last):
+  File "/Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/api/main.py", line 216, in predict
+    raise HTTPException(
+fastapi.exceptions.HTTPException: 400: Invalid input text after cleaning
+
+2025-06-12 14:00:39,087 - api.logger - INFO - Starting prediction...
+2025-06-12 14:00:39,087 - api.logger - INFO - Model loaded: True
+2025-06-12 14:00:39,087 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:00:39,087 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:00:39,087 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 14:00:39,088 - api.logger - INFO - Cleaned text: 'implement binary search tree python'
+2025-06-12 14:00:39,088 - api.logger - INFO - Getting embeddings...
+2025-06-12 14:00:39,089 - api.logger - INFO - Making prediction...
+2025-06-12 14:00:39,098 - api.logger - INFO - Raw prediction: [[0. 0. 0. ... 0. 0. 0.]]
+2025-06-12 14:00:39,098 - api.logger - INFO - Transformed tags: ('python',)
+2025-06-12 14:00:39,098 - api.logger - INFO - Prediction done in 0.011 sec. Tags: ('python',)
+2025-06-12 14:00:39,100 - api.logger - INFO - Starting prediction...
+2025-06-12 14:00:39,100 - api.logger - INFO - Model loaded: True
+2025-06-12 14:00:39,100 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:00:39,100 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:00:39,100 - api.logger - INFO - Original text: 'What is the best way to learn machine learning?'
+2025-06-12 14:00:39,100 - api.logger - INFO - Cleaned text: 'best way learn machine learning'
+2025-06-12 14:00:39,101 - api.logger - INFO - Getting embeddings...
+2025-06-12 14:00:39,103 - api.logger - INFO - Making prediction...
+2025-06-12 14:00:39,113 - api.logger - INFO - Raw prediction: [[0. 0. 0. ... 0. 0. 0.]]
+2025-06-12 14:00:39,113 - api.logger - INFO - Transformed tags: ('python-2.7',)
+2025-06-12 14:00:39,113 - api.logger - INFO - Prediction done in 0.013 sec. Tags: ('python-2.7',)
+2025-06-12 14:00:39,115 - api.logger - INFO - Starting prediction...
+2025-06-12 14:00:39,115 - api.logger - INFO - Model loaded: True
+2025-06-12 14:00:39,115 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:00:39,115 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:00:39,115 - api.logger - INFO - Original text: 'How to deploy a Docker container?'
+2025-06-12 14:00:39,116 - api.logger - INFO - Cleaned text: 'deploy docker container'
+2025-06-12 14:00:39,116 - api.logger - INFO - Getting embeddings...
+2025-06-12 14:00:39,117 - api.logger - INFO - Making prediction...
+2025-06-12 14:00:39,125 - api.logger - INFO - Raw prediction: [[0. 0. 0. ... 0. 0. 0.]]
+2025-06-12 14:00:39,125 - api.logger - INFO - Transformed tags: ('docker',)
+2025-06-12 14:00:39,125 - api.logger - INFO - Prediction done in 0.010 sec. Tags: ('docker',)
+2025-06-12 14:01:46,011 - api.logger - INFO - Starting model loading...
+2025-06-12 14:01:46,011 - api.logger - INFO - Current working directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api
+2025-06-12 14:01:46,011 - api.logger - INFO - Directory contents: ['awscliv2.zip', '.DS_Store', 'requirements.txt', '.pytest_cache', 'Dockerfile', 'tests', 'models', 'README.md', 'Pipfile', 'logs', '.gitignore', '.env', '.venv', '.github', '.gitattributes', 'api', 'aws', '.git', 'Pipfile.lock']
+2025-06-12 14:01:46,011 - api.logger - INFO - Current script directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/api
+2025-06-12 14:01:46,011 - api.logger - INFO - Models directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models
+2025-06-12 14:01:46,011 - api.logger - INFO - Models directory contents: ['mlb.pkl', 'model.pkl']
+2025-06-12 14:01:46,011 - api.logger - INFO - Model path: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models/model.pkl
+2025-06-12 14:01:46,011 - api.logger - INFO - MLB path: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models/mlb.pkl
+2025-06-12 14:01:46,011 - api.logger - INFO - Model file exists: True
+2025-06-12 14:01:46,011 - api.logger - INFO - MLB file exists: True
+2025-06-12 14:01:46,011 - api.logger - INFO - Model file size: 149858116
+2025-06-12 14:01:46,012 - api.logger - INFO - MLB file size: 14320
+2025-06-12 14:01:46,846 - api.logger - INFO - ✓ model.pkl loaded successfully via joblib. Type: <class 'xgboost.sklearn.XGBClassifier'>
+2025-06-12 14:01:46,846 - api.logger - INFO - Loading mlb.pkl...
+2025-06-12 14:01:46,848 - api.logger - INFO - ✓ mlb.pkl loaded successfully via joblib. Type: <class 'sklearn.preprocessing._label.MultiLabelBinarizer'>
+2025-06-12 14:01:46,848 - api.logger - INFO - Loading USE model from: https://tfhub.dev/google/universal-sentence-encoder/4
+2025-06-12 14:01:50,826 - api.logger - INFO - ✓ USE model loaded successfully
+2025-06-12 14:01:50,826 - api.logger - INFO - Testing USE model with sample text...
+2025-06-12 14:01:50,995 - api.logger - INFO - Test embeddings shape: (1, 512)
+2025-06-12 14:01:50,995 - api.logger - INFO - ✓ USE model test successful
+2025-06-12 14:01:50,995 - api.logger - INFO - Model loading complete!
+2025-06-12 14:01:53,055 - api.logger - INFO - Starting prediction...
+2025-06-12 14:01:53,055 - api.logger - INFO - Model loaded: True
+2025-06-12 14:01:53,055 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:01:53,055 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:01:53,056 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 14:01:54,388 - api.logger - INFO - Cleaned text: 'implement binary search tree python'
+2025-06-12 14:01:54,388 - api.logger - INFO - Getting embeddings...
+2025-06-12 14:01:54,390 - api.logger - INFO - Making prediction...
+2025-06-12 14:01:54,443 - api.logger - INFO - Raw prediction: [[0. 0. 0. ... 0. 0. 0.]]
+2025-06-12 14:01:54,443 - api.logger - INFO - Transformed tags: ('python',)
+2025-06-12 14:01:54,443 - api.logger - INFO - Prediction done in 1.387 sec. Tags: ('python',)
+2025-06-12 14:01:54,447 - api.logger - INFO - Starting prediction...
+2025-06-12 14:01:54,447 - api.logger - INFO - Model loaded: True
+2025-06-12 14:01:54,447 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:01:54,447 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:01:54,447 - api.logger - INFO - Original text: '!!!@@@###'
+2025-06-12 14:01:54,448 - api.logger - INFO - Cleaned text: ''
+2025-06-12 14:01:54,448 - api.logger - ERROR - Text is empty after cleaning
+2025-06-12 14:01:54,448 - api.logger - ERROR - Error during prediction: 400: Invalid input text after cleaning
+2025-06-12 14:01:54,448 - api.logger - ERROR - Exception type: <class 'fastapi.exceptions.HTTPException'>
+2025-06-12 14:01:54,448 - api.logger - ERROR - Traceback: Traceback (most recent call last):
+  File "/Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/api/main.py", line 216, in predict
+    raise HTTPException(
+fastapi.exceptions.HTTPException: 400: Invalid input text after cleaning
+
+2025-06-12 14:01:54,450 - api.logger - INFO - Starting prediction...
+2025-06-12 14:01:54,450 - api.logger - INFO - Model loaded: True
+2025-06-12 14:01:54,450 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:01:54,450 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:01:54,450 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 14:01:54,451 - api.logger - INFO - Cleaned text: 'implement binary search tree python'
+2025-06-12 14:01:54,451 - api.logger - INFO - Getting embeddings...
+2025-06-12 14:01:54,453 - api.logger - INFO - Making prediction...
+2025-06-12 14:01:54,462 - api.logger - INFO - Raw prediction: [[0. 0. 0. ... 0. 0. 0.]]
+2025-06-12 14:01:54,463 - api.logger - INFO - Transformed tags: ('python',)
+2025-06-12 14:01:54,463 - api.logger - INFO - Prediction done in 0.013 sec. Tags: ('python',)
+2025-06-12 14:01:54,465 - api.logger - INFO - Starting prediction...
+2025-06-12 14:01:54,465 - api.logger - INFO - Model loaded: True
+2025-06-12 14:01:54,465 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:01:54,465 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:01:54,465 - api.logger - INFO - Original text: 'What is the best way to learn machine learning?'
+2025-06-12 14:01:54,465 - api.logger - INFO - Cleaned text: 'best way learn machine learning'
+2025-06-12 14:01:54,465 - api.logger - INFO - Getting embeddings...
+2025-06-12 14:01:54,467 - api.logger - INFO - Making prediction...
+2025-06-12 14:01:54,475 - api.logger - INFO - Raw prediction: [[0. 0. 0. ... 0. 0. 0.]]
+2025-06-12 14:01:54,475 - api.logger - INFO - Transformed tags: ('python-2.7',)
+2025-06-12 14:01:54,475 - api.logger - INFO - Prediction done in 0.010 sec. Tags: ('python-2.7',)
+2025-06-12 14:01:54,477 - api.logger - INFO - Starting prediction...
+2025-06-12 14:01:54,477 - api.logger - INFO - Model loaded: True
+2025-06-12 14:01:54,477 - api.logger - INFO - MLB loaded: True
+2025-06-12 14:01:54,477 - api.logger - INFO - USE model loaded: True
+2025-06-12 14:01:54,477 - api.logger - INFO - Original text: 'How to deploy a Docker container?'
+2025-06-12 14:01:54,477 - api.logger - INFO - Cleaned text: 'deploy docker container'
+2025-06-12 14:01:54,478 - api.logger - INFO - Getting embeddings...
+2025-06-12 14:01:54,479 - api.logger - INFO - Making prediction...
+2025-06-12 14:01:54,487 - api.logger - INFO - Raw prediction: [[0. 0. 0. ... 0. 0. 0.]]
+2025-06-12 14:01:54,487 - api.logger - INFO - Transformed tags: ('docker',)
+2025-06-12 14:01:54,487 - api.logger - INFO - Prediction done in 0.010 sec. Tags: ('docker',)

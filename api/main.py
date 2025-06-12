@@ -99,33 +99,18 @@ def init_models():
                 f"✓ mlb.pkl loaded successfully via pickle. Type: {type(mlb)}")
 
         # Load USE model
-        logger.info("Loading USE embedding model...")
-        try:
-            import tensorflow as tf
-            logger.info(f"TensorFlow version: {tf.__version__}")
-            logger.info(
-                f"TensorFlow devices: {tf.config.list_physical_devices()}")
+        logger.info(
+            "Loading USE model from: https://tfhub.dev/google/universal-sentence-encoder/4")
+        use_model = hub.load(
+            "https://tfhub.dev/google/universal-sentence-encoder/4")
+        logger.info("✓ USE model loaded successfully")
 
-            use_model_url = os.getenv(
-                'USE_MODEL_URL', "https://tfhub.dev/google/universal-sentence-encoder/4")
-            logger.info(f"Loading USE model from: {use_model_url}")
-
-            use_model = hub.load(use_model_url)
-            logger.info("✓ USE model loaded successfully")
-
-            # Test the model
-            test_text = ["Test sentence"]
-            logger.info("Testing USE model with sample text...")
-            embeddings = use_model(test_text)
-            logger.info(f"Test embeddings shape: {embeddings.shape}")
-            logger.info("✓ USE model test successful")
-
-        except Exception as e:
-            logger.error(f"Failed to load USE model: {str(e)}")
-            logger.error(f"Exception type: {type(e)}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            raise
+        # Test the model
+        test_text = ["Test sentence"]
+        logger.info("Testing USE model with sample text...")
+        embeddings = use_model(test_text)
+        logger.info(f"Test embeddings shape: {embeddings.shape}")
+        logger.info("✓ USE model test successful")
 
         logger.info("Model loading complete!")
 
@@ -256,6 +241,8 @@ def predict(question: Question):
             logger.error(f"Exception type: {type(e)}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
+            if "Invalid input text" in str(e) or "No tags predicted" in str(e):
+                raise HTTPException(status_code=400, detail=str(e))
             raise HTTPException(status_code=500, detail=str(e))
 
     except HTTPException:
