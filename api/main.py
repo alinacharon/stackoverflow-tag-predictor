@@ -20,6 +20,9 @@ import pickle
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Force CPU usage for TensorFlow
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 # nltk
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
@@ -64,6 +67,9 @@ def init_models():
         try:
             # Try loading with joblib first
             model = joblib.load(model_path)
+            # Force model to use CPU
+            if hasattr(model, 'set_params'):
+                model.set_params(tree_method='hist', device='cpu')
             logger.info(
                 f"✓ model.pkl loaded successfully via joblib. Type: {type(model)}")
         except Exception as e:
@@ -71,6 +77,9 @@ def init_models():
             # Fallback to pickle if joblib fails
             with open(model_path, 'rb') as f:
                 model = pickle.load(f)
+            # Force model to use CPU
+            if hasattr(model, 'set_params'):
+                model.set_params(tree_method='hist', device='cpu')
             logger.info(
                 f"✓ model.pkl loaded successfully via pickle. Type: {type(model)}")
 
