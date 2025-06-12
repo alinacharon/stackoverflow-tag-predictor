@@ -15,6 +15,8 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
 import os
 import sys
+import pickle
+
 # Add the project root to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -48,14 +50,35 @@ def init_models():
 
         logger.info(f"Attempting to load model from: {model_path}")
         logger.info(f"DEBUG: models_dir computed as: {models_dir}")
-        model = joblib.load(model_path)
-        logger.info(f"✓ model.pkl loaded successfully. Type: {type(model)}")
+
+        try:
+            # Try loading with joblib first
+            model = joblib.load(model_path)
+            logger.info(
+                f"✓ model.pkl loaded successfully via joblib. Type: {type(model)}")
+        except Exception as e:
+            logger.error(f"Failed to load model with joblib: {e}")
+            # Fallback to pickle if joblib fails
+            with open(model_path, 'rb') as f:
+                model = pickle.load(f)
+            logger.info(
+                f"✓ model.pkl loaded successfully via pickle. Type: {type(model)}")
 
         logger.info("Loading mlb.pkl...")
-        mlb = joblib.load(mlb_path)
-        logger.info(f"✓ mlb.pkl loaded successfully. Type: {type(mlb)}")
+        try:
+            # Try loading with joblib first
+            mlb = joblib.load(mlb_path)
+            logger.info(
+                f"✓ mlb.pkl loaded successfully via joblib. Type: {type(mlb)}")
+        except Exception as e:
+            logger.error(f"Failed to load mlb with joblib: {e}")
+            # Fallback to pickle if joblib fails
+            with open(mlb_path, 'rb') as f:
+                mlb = pickle.load(f)
+            logger.info(
+                f"✓ mlb.pkl loaded successfully via pickle. Type: {type(mlb)}")
 
-        # Load USE model immediately
+        # Load USE model
         logger.info("Loading USE embedding model...")
         use_model = hub.load(os.getenv(
             'USE_MODEL_URL', "https://tfhub.dev/google/universal-sentence-encoder/4"))
