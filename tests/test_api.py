@@ -32,34 +32,55 @@ def start_local_server():
         # Calculate the absolute path to the project root
         project_root = os.path.abspath(
             os.path.join(os.path.dirname(__file__), '..'))
+        logger.info(f"Project root: {project_root}")
 
         # Check for models before starting (using absolute paths)
         model_path_abs = os.path.join(project_root, "models/model.pkl")
         mlb_path_abs = os.path.join(project_root, "models/mlb.pkl")
+        use_model_path_abs = os.path.join(project_root, "models/use")
+
+        logger.info(f"Checking model files:")
+        logger.info(f"model.pkl path: {model_path_abs}")
+        logger.info(f"mlb.pkl path: {mlb_path_abs}")
+        logger.info(f"USE model path: {use_model_path_abs}")
+
         assert os.path.exists(
             model_path_abs), f"model.pkl not found at {model_path_abs}!"
         assert os.path.exists(
             mlb_path_abs), f"mlb.pkl not found at {mlb_path_abs}!"
+        assert os.path.exists(
+            use_model_path_abs), f"USE model not found at {use_model_path_abs}!"
+        assert os.path.isdir(
+            use_model_path_abs), f"USE model path is not a directory: {use_model_path_abs}!"
 
         # Configure environment variables
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root
+        env["TFHUB_CACHE_DIR"] = use_model_path_abs
+        env["TF_CPP_MIN_LOG_LEVEL"] = "0"  # Enable TensorFlow logging
+        env["CUDA_VISIBLE_DEVICES"] = "-1"  # Force CPU usage
+
+        logger.info("Environment variables set:")
+        logger.info(f"PYTHONPATH: {env['PYTHONPATH']}")
+        logger.info(f"TFHUB_CACHE_DIR: {env['TFHUB_CACHE_DIR']}")
 
         # Use absolute path for python executable and run uvicorn as a module
-        # Set cwd to project_root to ensure relative imports from api/main.py work
         command = [
             sys.executable, "-m", "uvicorn",
-            "api.main:app",  # This will now be correctly found via PYTHONPATH
+            "api.main:app",
             "--host", "0.0.0.0",
-            "--port", "3000"
+            "--port", "3000",
+            "--log-level", "debug"
         ]
 
+        logger.info(f"Starting server with command: {' '.join(command)}")
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=project_root,  # Set CWD to project root for consistent path resolution
-            env=env
+            cwd=project_root,
+            env=env,
+            text=True
         )
         return process
     except Exception as e:
@@ -67,11 +88,13 @@ def start_local_server():
         raise
 
 
-def wait_for_server(url: str, max_retries: int = 30, delay: int = 5):
+def wait_for_server(url: str, max_retries: int = 30, delay: int = 2):
     """Wait for server to be ready with improved error handling"""
     for i in range(max_retries):
         try:
-            response = session.get(f"{url}/health", timeout=10)
+            logger.info(
+                f"Attempt {i+1}/{max_retries}: Checking server health...")
+            response = session.get(f"{url}/health", timeout=5)
             if response.status_code == 200 and response.json().get("status") == "healthy":
                 logger.info("Server is ready and responding")
                 return True
@@ -85,23 +108,29 @@ def wait_for_server(url: str, max_retries: int = 30, delay: int = 5):
 @pytest.fixture(scope="session", autouse=True)
 def setup_server():
     """Setup and teardown of the local test server"""
+    logger.info("Starting test server setup...")
+
     # Start the server
     server_process = start_local_server()
 
     # Wait for server to be ready
     if not wait_for_server(API_URL):
-        stderr = server_process.stderr.read().decode()
-        stdout = server_process.stdout.read().decode()
-        logger.error(f"Uvicorn stderr: {stderr}")
-        logger.error(f"Uvicorn stdout: {stdout}")
+        stderr = server_process.stderr.read()
+        stdout = server_process.stdout.read()
+        logger.error("Server failed to start. Logs:")
+        logger.error(f"STDOUT:\n{stdout}")
+        logger.error(f"STDERR:\n{stderr}")
         server_process.terminate()
         pytest.fail("Failed to start local server")
 
+    logger.info("Server started successfully")
     yield
 
     # Cleanup: stop the server
+    logger.info("Stopping test server...")
     server_process.terminate()
     server_process.wait()
+    logger.info("Test server stopped")
 
 
 def test_health_check():

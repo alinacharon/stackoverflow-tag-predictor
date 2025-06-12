@@ -1,7 +1,9 @@
-# Use multi-stage build
-FROM python:3.11-slim AS builder
+# ==============================
+# STAGE 1: Builder
+# ==============================
+FROM python:3.11-slim-bullseye AS builder
 
-# Install only necessary system dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
@@ -13,14 +15,14 @@ RUN apt-get update && apt-get install -y \
 # Working directory
 WORKDIR /app
 
-# Copy only dependency files
+# Copy dependencies
 COPY requirements.txt .
 
-# Install dependencies in virtual environment
+# Create virtual environment
 RUN python -m venv .venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Install dependencies in smaller chunks to manage memory better
+# Install pip and dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -29,47 +31,48 @@ RUN python -c "import nltk; \
     nltk.download('punkt'); \
     nltk.download('averaged_perceptron_tagger'); \
     nltk.download('wordnet'); \
-    nltk.download('stopwords'); \
-    nltk.download('averaged_perceptron_tagger_eng')"
+    nltk.download('stopwords')"
 
-# Pre-download USE model
-RUN python -c "import tensorflow_hub as hub; hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')"
+# ==============================
+# STAGE 2: Final image
+# ==============================
+FROM python:3.11-slim-bullseye
 
-# Final stage
-FROM python:3.11-slim
-
-# Create non-root user
+# Create user
 RUN useradd -m -u 1000 appuser
-
-# Copy virtual environment from builder
-COPY --from=builder /app/.venv /app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
 
 # Working directory
 WORKDIR /app
 
-# Copy only necessary files
+# Copy virtual environment
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Copy application and models
 COPY api/ api/
 COPY models/ models/
 
-# Create necessary directories and set permissions
-RUN mkdir -p logs /home/appuser/.cache && \
-    chown -R appuser:appuser logs /home/appuser && \
+# Setup cache and logs
+RUN mkdir -p /home/appuser/.cache/tfhub_modules && \
+    mkdir -p logs && \
+    chown -R appuser:appuser /app /home/appuser && \
     chmod 755 logs
 
-# Set environment variables
+# Environment variables
 ENV API_PORT=3000
 ENV PYTHONPATH=/app
 ENV LOG_LEVEL=info
 ENV LOG_DIR=/app/logs
-ENV TFHUB_CACHE_DIR=/home/appuser/.cache/tfhub_modules
+ENV TFHUB_CACHE_DIR=/app/models/use
+ENV TF_CPP_MIN_LOG_LEVEL=2
+ENV TF_FORCE_GPU_ALLOW_GROWTH=true
 
 # Switch to non-root user
 USER appuser
 
-# Add healthcheck
+# Health check
 HEALTHCHECK --interval=15s --timeout=10s --start-period=160s --retries=5 \
     CMD curl -f http://localhost:3000/health || exit 1
 
-# Run uvicorn with optimized settings
+# Run FastAPI with Uvicorn
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3000", "--workers", "1", "--limit-concurrency", "100", "--timeout-keep-alive", "30", "--log-level", "info"]

@@ -99,18 +99,32 @@ def init_models():
                 f"✓ mlb.pkl loaded successfully via pickle. Type: {type(mlb)}")
 
         # Load USE model
+        logger.info("Loading USE model from local path")
+        use_model_path = os.path.join(
+            models_dir, 'use', '063d866c06683311b44b4992fd46003be952409c')
+        logger.info(f"USE model path: {use_model_path}")
         logger.info(
-            "Loading USE model from: https://tfhub.dev/google/universal-sentence-encoder/4")
-        use_model = hub.load(
-            "https://tfhub.dev/google/universal-sentence-encoder/4")
-        logger.info("✓ USE model loaded successfully")
+            f"USE model directory exists: {os.path.exists(use_model_path)}")
+        logger.info(
+            f"USE model directory contents: {os.listdir(use_model_path) if os.path.exists(use_model_path) else 'N/A'}")
 
-        # Test the model
-        test_text = ["Test sentence"]
-        logger.info("Testing USE model with sample text...")
-        embeddings = use_model(test_text)
-        logger.info(f"Test embeddings shape: {embeddings.shape}")
-        logger.info("✓ USE model test successful")
+        try:
+            logger.info("Attempting to load USE model...")
+            use_model = hub.load(use_model_path)
+            logger.info("✓ USE model loaded from local path successfully")
+
+            # Test the model
+            test_text = ["Test sentence"]
+            logger.info("Testing USE model with sample text...")
+            embeddings = use_model(test_text)
+            logger.info(f"Test embeddings shape: {embeddings.shape}")
+            logger.info("✓ USE model test successful")
+        except Exception as e:
+            logger.error(f"Failed to load USE model: {str(e)}")
+            logger.error(f"Exception type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
 
         logger.info("Model loading complete!")
 

@@ -26,11 +26,6 @@ jobs:
           pip install -r requirements.txt
           pip install tensorflow-cpu==2.15.0 tensorflow-hub==0.15.0
 
-      - name: Pre-download USE model
-        run: |
-          echo "Pre-downloading USE model..."
-          python -c "import tensorflow as tf; tf.config.set_visible_devices([], 'GPU'); import tensorflow_hub as hub; model = hub.load('https://tfhub.dev/google/universal-sentence-encoder/4'); print('Model loaded successfully')"
-
       - name: Verify model files
         run: |
           echo "Current directory: $(pwd)"
@@ -38,14 +33,18 @@ jobs:
           ls -la
           echo "Models directory contents:"
           ls -la models/
-          echo "Model file sizes:"
-          du -h models/*.pkl
+          echo "USE model directory contents:"
+          ls -la models/use/
           echo "Checking if files are LFS pointers:"
           git lfs ls-files
 
       - name: Start API server
         run: |
           echo "Starting API server..."
+          export TFHUB_CACHE_DIR="$(pwd)/models/use"
+          echo "TFHUB_CACHE_DIR set to: $TFHUB_CACHE_DIR"
+          echo "USE model directory contents:"
+          ls -la $TFHUB_CACHE_DIR
           python -m uvicorn api.main:app --host 0.0.0.0 --port 3000 > server.log 2>&1 &
           echo "Waiting for server to start..."
           for i in {1..30}; do
