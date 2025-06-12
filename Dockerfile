@@ -32,6 +32,11 @@ RUN python -c "import nltk; \
     nltk.download('stopwords'); \
     nltk.download('averaged_perceptron_tagger_eng')"
 
+# Pre-download USE model
+ARG USE_MODEL_URL="https://tfhub.dev/google/universal-sentence-encoder/4"
+ENV USE_MODEL_URL=${USE_MODEL_URL}
+RUN python -c "import tensorflow_hub as hub; hub.load('${USE_MODEL_URL}')"
+
 # Final stage
 FROM python:3.10-slim
 
@@ -41,6 +46,9 @@ RUN useradd -m -u 1000 appuser
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy USE model cache
+COPY --from=builder /root/.cache/tfhub_modules /home/appuser/.cache/tfhub_modules
 
 # Working directory
 WORKDIR /app
@@ -52,6 +60,7 @@ COPY models/ models/
 # Create logs directory with proper permissions
 RUN mkdir -p logs && \
     chown -R appuser:appuser logs && \
+    chown -R appuser:appuser /home/appuser/.cache && \
     chmod 755 logs
 
 # Set environment variables
@@ -59,6 +68,8 @@ ENV API_PORT=3000
 ENV PYTHONPATH=/app
 ENV LOG_LEVEL=info
 ENV LOG_DIR=/app/logs
+ENV TFHUB_CACHE_DIR=/home/appuser/.cache/tfhub_modules
+ENV USE_MODEL_URL=${USE_MODEL_URL}
 
 # Switch to non-root user
 USER appuser

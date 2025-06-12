@@ -1,4 +1,4 @@
-from .logger import logger
+from api.logger import logger
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords, wordnet
 from nltk.tokenize import TreebankWordTokenizer
@@ -57,8 +57,8 @@ def init_models():
 
         # Load USE model immediately
         logger.info("Loading USE embedding model...")
-        use_model = hub.load(
-            "https://tfhub.dev/google/universal-sentence-encoder/4")
+        use_model = hub.load(os.getenv(
+            'USE_MODEL_URL', "https://tfhub.dev/google/universal-sentence-encoder/4"))
         logger.info("✓ USE model loaded successfully")
 
         logger.info("Model loading complete!")
