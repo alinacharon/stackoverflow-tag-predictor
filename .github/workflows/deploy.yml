@@ -9,6 +9,7 @@ on:
 env:
   DOCKER_IMAGE: alinacharon/stackoverflow-predictor
   DOCKER_TAG: ${{ github.sha }}
+  USE_MODEL_URL: "https://tfhub.dev/google/universal-sentence-encoder/4"
 
 jobs:
   test:
@@ -47,6 +48,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+          cache: "pip"
+
+      - name: Cache USE model
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/tfhub_modules
+          key: use-model-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            use-model-
 
       - name: Install dependencies
         run: |
@@ -75,6 +85,10 @@ jobs:
             nltk.download('stopwords'); \
             nltk.download('averaged_perceptron_tagger_eng')"
 
+      - name: Pre-download USE model
+        run: |
+          python -c "import tensorflow_hub as hub; hub.load('${{ env.USE_MODEL_URL }}')"
+
       - name: Run tests
         run: |
           pytest tests/ -v --cov=api
@@ -101,8 +115,14 @@ jobs:
           context: .
           push: true
           tags: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }},${{ env.DOCKER_IMAGE }}:latest
-          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
-          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
+          cache-from: |
+            type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
+            type=gha,mode=max
+          build-args: |
+            USE_MODEL_URL=${{ env.USE_MODEL_URL }}
 
   deploy:
     needs: build-and-push
@@ -116,11 +136,14 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            # Pull the new image
             docker pull ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
 
+            # Stop and remove the old container
             docker stop stackoverflow-predictor || true
             docker rm stackoverflow-predictor || true
 
+            # Run the new container
             docker run -d \
               --name stackoverflow-predictor \
               --restart unless-stopped \
@@ -128,6 +151,9 @@ jobs:
               -v /app/logs:/app/logs \
               ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
 
+            # Clean up old images
             docker image prune -f
 
-            
+            # Verify the deployment
+            sleep 10
+            curl -f http://localhost:3000/health || exit 1

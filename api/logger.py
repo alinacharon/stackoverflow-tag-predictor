@@ -8,7 +8,7 @@ LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logger.propagate = False 
+logger.propagate = False
 
 if logger.hasHandlers():
     logger.handlers.clear()
