@@ -452,3 +452,22 @@ _pickle.UnpicklingError: STACK_GLOBAL requires str
 2025-06-12 10:43:08,907 - api.logger - INFO - Prediction done in 0.011 sec. Tags: ('python-2.7',)
 2025-06-12 10:43:08,909 - api.logger - INFO - Original text: 'How to deploy a Docker container?'
 2025-06-12 10:43:08,920 - api.logger - INFO - Prediction done in 0.011 sec. Tags: ('docker',)
+2025-06-12 10:59:14,691 - api.logger - INFO - Starting model loading...
+2025-06-12 10:59:14,691 - api.logger - INFO - Current working directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api
+2025-06-12 10:59:14,691 - api.logger - INFO - Attempting to load model from: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models/model.pkl
+2025-06-12 10:59:14,691 - api.logger - INFO - DEBUG: models_dir computed as: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models
+2025-06-12 10:59:15,393 - api.logger - INFO - ✓ model.pkl loaded successfully via joblib. Type: <class 'xgboost.sklearn.XGBClassifier'>
+2025-06-12 10:59:15,394 - api.logger - INFO - Loading mlb.pkl...
+2025-06-12 10:59:15,394 - api.logger - INFO - ✓ mlb.pkl loaded successfully via joblib. Type: <class 'sklearn.preprocessing._label.MultiLabelBinarizer'>
+2025-06-12 10:59:15,394 - api.logger - INFO - Loading USE embedding model...
+2025-06-12 10:59:19,284 - api.logger - INFO - ✓ USE model loaded successfully
+2025-06-12 10:59:19,284 - api.logger - INFO - Model loading complete!
+2025-06-12 10:59:22,554 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 10:59:24,121 - api.logger - INFO - Prediction done in 1.567 sec. Tags: ('python',)
+2025-06-12 10:59:24,126 - api.logger - INFO - Original text: '!!!@@@###'
+2025-06-12 10:59:24,128 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 10:59:24,139 - api.logger - INFO - Prediction done in 0.011 sec. Tags: ('python',)
+2025-06-12 10:59:24,141 - api.logger - INFO - Original text: 'What is the best way to learn machine learning?'
+2025-06-12 10:59:24,151 - api.logger - INFO - Prediction done in 0.010 sec. Tags: ('python-2.7',)
+2025-06-12 10:59:24,153 - api.logger - INFO - Original text: 'How to deploy a Docker container?'
+2025-06-12 10:59:24,163 - api.logger - INFO - Prediction done in 0.010 sec. Tags: ('docker',)
