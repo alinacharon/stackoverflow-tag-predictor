@@ -176,35 +176,62 @@ async def root():
 def predict(question: Question):
     try:
         global model, mlb, use_model
+        logger.info("Starting prediction...")
+        logger.info(f"Model loaded: {model is not None}")
+        logger.info(f"MLB loaded: {mlb is not None}")
+        logger.info(f"USE model loaded: {use_model is not None}")
+
         if model is None or mlb is None or use_model is None:
+            logger.error("Models not loaded properly")
             raise HTTPException(
                 status_code=500, detail="Models not loaded")
 
         logger.info(f"Original text: '{question.text}'")
         start_time = time.time()
 
-        cleaned_text = clean_text(question.text)
-        if not cleaned_text:
-            raise HTTPException(
-                status_code=400, detail="Invalid input text after cleaning")
+        try:
+            cleaned_text = clean_text(question.text)
+            logger.info(f"Cleaned text: '{cleaned_text}'")
 
-        # Get embeddings and make prediction
-        embeddings = use_model([cleaned_text])
-        prediction = model.predict(embeddings)
-        tags = mlb.inverse_transform(prediction)[0]
+            if not cleaned_text:
+                logger.error("Text is empty after cleaning")
+                raise HTTPException(
+                    status_code=400, detail="Invalid input text after cleaning")
 
-        if not tags:
-            raise HTTPException(status_code=400, detail="No tags predicted")
+            # Get embeddings and make prediction
+            logger.info("Getting embeddings...")
+            embeddings = use_model([cleaned_text])
+            logger.info("Making prediction...")
+            prediction = model.predict(embeddings)
+            logger.info(f"Raw prediction: {prediction}")
 
-        elapsed = time.time() - start_time
-        logger.info(f"Prediction done in {elapsed:.3f} sec. Tags: {tags}")
+            tags = mlb.inverse_transform(prediction)[0]
+            logger.info(f"Transformed tags: {tags}")
 
-        return Prediction(tags=list(tags))
+            if not tags:
+                logger.error("No tags predicted")
+                raise HTTPException(
+                    status_code=400, detail="No tags predicted")
+
+            elapsed = time.time() - start_time
+            logger.info(f"Prediction done in {elapsed:.3f} sec. Tags: {tags}")
+
+            return Prediction(tags=list(tags))
+
+        except Exception as e:
+            logger.error(f"Error during prediction: {str(e)}")
+            logger.error(f"Exception type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Prediction error: {e}")
+        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Exception type: {type(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
