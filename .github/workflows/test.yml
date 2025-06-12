@@ -8,29 +8,33 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
         with:
-          lfs: true 
-      
+          lfs: true
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12"
           cache: "pip"
-      
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
+
       - name: Verify model files
         run: |
           ls -la models/
           file models/model.pkl
           file models/mlb.pkl
-      
+          echo "Model file sizes:"
+          du -h models/*.pkl
+          echo "Checking if files are LFS pointers:"
+          git lfs ls-files
+
       - name: Run tests
         run: |
           pytest tests/ -v

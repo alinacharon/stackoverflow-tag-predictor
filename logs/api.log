@@ -509,3 +509,49 @@ _pickle.UnpicklingError: STACK_GLOBAL requires str
 2025-06-12 12:17:43,050 - api.logger - INFO - Prediction done in 0.024 sec. Tags: ('python-2.7',)
 2025-06-12 12:17:43,054 - api.logger - INFO - Original text: 'How to deploy a Docker container?'
 2025-06-12 12:17:43,080 - api.logger - INFO - Prediction done in 0.026 sec. Tags: ('docker',)
+2025-06-12 12:33:00,691 - api.logger - INFO - Starting model loading...
+2025-06-12 12:33:00,692 - api.logger - INFO - Current working directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api
+2025-06-12 12:33:00,692 - api.logger - INFO - Attempting to load model from: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models/model.pkl
+2025-06-12 12:33:00,692 - api.logger - INFO - DEBUG: models_dir computed as: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models
+2025-06-12 12:33:02,640 - api.logger - INFO - ✓ model.pkl loaded successfully via joblib. Type: <class 'xgboost.sklearn.XGBClassifier'>
+2025-06-12 12:33:02,641 - api.logger - INFO - Loading mlb.pkl...
+2025-06-12 12:33:02,643 - api.logger - INFO - ✓ mlb.pkl loaded successfully via joblib. Type: <class 'sklearn.preprocessing._label.MultiLabelBinarizer'>
+2025-06-12 12:33:02,643 - api.logger - INFO - Loading USE embedding model...
+2025-06-12 12:33:13,190 - api.logger - INFO - ✓ USE model loaded successfully
+2025-06-12 12:33:13,191 - api.logger - INFO - Model loading complete!
+2025-06-12 12:33:14,790 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 12:33:18,617 - api.logger - INFO - Prediction done in 3.827 sec. Tags: ('python',)
+2025-06-12 12:33:18,631 - api.logger - INFO - Original text: '!!!@@@###'
+2025-06-12 12:33:18,642 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 12:33:18,682 - api.logger - INFO - Prediction done in 0.041 sec. Tags: ('python',)
+2025-06-12 12:33:18,687 - api.logger - INFO - Original text: 'What is the best way to learn machine learning?'
+2025-06-12 12:33:18,714 - api.logger - INFO - Prediction done in 0.027 sec. Tags: ('python-2.7',)
+2025-06-12 12:33:18,718 - api.logger - INFO - Original text: 'How to deploy a Docker container?'
+2025-06-12 12:33:18,742 - api.logger - INFO - Prediction done in 0.024 sec. Tags: ('docker',)
+2025-06-12 13:22:04,857 - api.logger - INFO - Starting model loading...
+2025-06-12 13:22:04,858 - api.logger - INFO - Current working directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api
+2025-06-12 13:22:04,858 - api.logger - INFO - Directory contents: ['awscliv2.zip', '.DS_Store', 'requirements.txt', '.pytest_cache', 'Dockerfile', 'tests', 'models', 'README.md', 'Pipfile', 'logs', '.gitignore', '.env', '.venv', '.github', '.gitattributes', 'api', 'aws', '.git', 'Pipfile.lock']
+2025-06-12 13:22:04,858 - api.logger - INFO - Current script directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/api
+2025-06-12 13:22:04,858 - api.logger - INFO - Models directory: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models
+2025-06-12 13:22:04,859 - api.logger - INFO - Models directory contents: ['mlb.pkl', 'model.pkl']
+2025-06-12 13:22:04,859 - api.logger - INFO - Model path: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models/model.pkl
+2025-06-12 13:22:04,859 - api.logger - INFO - MLB path: /Users/alinacharon/Desktop/notebooks/OC/5 - Catégorisez automatiquement des questions/api/models/mlb.pkl
+2025-06-12 13:22:04,859 - api.logger - INFO - Model file exists: True
+2025-06-12 13:22:04,859 - api.logger - INFO - MLB file exists: True
+2025-06-12 13:22:04,859 - api.logger - INFO - Model file size: 149858116
+2025-06-12 13:22:04,859 - api.logger - INFO - MLB file size: 14320
+2025-06-12 13:22:07,081 - api.logger - INFO - ✓ model.pkl loaded successfully via joblib. Type: <class 'xgboost.sklearn.XGBClassifier'>
+2025-06-12 13:22:07,082 - api.logger - INFO - Loading mlb.pkl...
+2025-06-12 13:22:07,083 - api.logger - INFO - ✓ mlb.pkl loaded successfully via joblib. Type: <class 'sklearn.preprocessing._label.MultiLabelBinarizer'>
+2025-06-12 13:22:07,083 - api.logger - INFO - Loading USE embedding model...
+2025-06-12 13:22:20,390 - api.logger - INFO - ✓ USE model loaded successfully
+2025-06-12 13:22:20,390 - api.logger - INFO - Model loading complete!
+2025-06-12 13:22:25,265 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 13:22:29,716 - api.logger - INFO - Prediction done in 4.451 sec. Tags: ('python',)
+2025-06-12 13:22:29,731 - api.logger - INFO - Original text: '!!!@@@###'
+2025-06-12 13:22:29,739 - api.logger - INFO - Original text: 'How to implement a binary search tree in Python?'
+2025-06-12 13:22:29,779 - api.logger - INFO - Prediction done in 0.040 sec. Tags: ('python',)
+2025-06-12 13:22:29,783 - api.logger - INFO - Original text: 'What is the best way to learn machine learning?'
+2025-06-12 13:22:29,813 - api.logger - INFO - Prediction done in 0.030 sec. Tags: ('python-2.7',)
+2025-06-12 13:22:29,818 - api.logger - INFO - Original text: 'How to deploy a Docker container?'
+2025-06-12 13:22:29,849 - api.logger - INFO - Prediction done in 0.030 sec. Tags: ('docker',)

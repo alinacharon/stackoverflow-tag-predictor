@@ -1,5 +1,5 @@
 # Use multi-stage build
-FROM python:3.10-slim AS builder
+FROM python:3.12-slim AS builder
 
 # Install only necessary system dependencies
 RUN apt-get update && apt-get install -y \
@@ -17,8 +17,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install dependencies in virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+RUN python -m venv .venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Install dependencies in smaller chunks to manage memory better
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -38,17 +38,14 @@ ENV USE_MODEL_URL=${USE_MODEL_URL}
 RUN python -c "import tensorflow_hub as hub; hub.load('${USE_MODEL_URL}')"
 
 # Final stage
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
 
 # Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy USE model cache
-COPY --from=builder /root/.cache/tfhub_modules /home/appuser/.cache/tfhub_modules
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Working directory
 WORKDIR /app
@@ -57,10 +54,9 @@ WORKDIR /app
 COPY api/ api/
 COPY models/ models/
 
-# Create logs directory with proper permissions
-RUN mkdir -p logs && \
-    chown -R appuser:appuser logs && \
-    chown -R appuser:appuser /home/appuser/.cache && \
+# Create necessary directories and set permissions
+RUN mkdir -p logs /home/appuser/.cache && \
+    chown -R appuser:appuser logs /home/appuser && \
     chmod 755 logs
 
 # Set environment variables

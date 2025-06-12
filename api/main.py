@@ -36,20 +36,30 @@ def init_models():
     try:
         logger.info("Starting model loading...")
         logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Directory contents: {os.listdir('.')}")
 
         # Determine the absolute path to the directory containing main.py
         current_script_dir = os.path.dirname(os.path.abspath(__file__))
+        logger.info(f"Current script directory: {current_script_dir}")
 
         # Construct the path to the 'models' directory
         project_root = os.path.dirname(current_script_dir)
         models_dir = os.path.join(project_root, 'models')
+        logger.info(f"Models directory: {models_dir}")
+        logger.info(f"Models directory contents: {os.listdir(models_dir)}")
 
         # Load models directly from local path
         model_path = os.path.join(models_dir, 'model.pkl')
         mlb_path = os.path.join(models_dir, 'mlb.pkl')
 
-        logger.info(f"Attempting to load model from: {model_path}")
-        logger.info(f"DEBUG: models_dir computed as: {models_dir}")
+        logger.info(f"Model path: {model_path}")
+        logger.info(f"MLB path: {mlb_path}")
+        logger.info(f"Model file exists: {os.path.exists(model_path)}")
+        logger.info(f"MLB file exists: {os.path.exists(mlb_path)}")
+        logger.info(
+            f"Model file size: {os.path.getsize(model_path) if os.path.exists(model_path) else 'N/A'}")
+        logger.info(
+            f"MLB file size: {os.path.getsize(mlb_path) if os.path.exists(mlb_path) else 'N/A'}")
 
         try:
             # Try loading with joblib first
