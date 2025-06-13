@@ -2,6 +2,12 @@
 
 This API predicts tags for StackOverflow questions.
 
+## 🌐 Live Demo
+
+The API is available at: [http://13.39.79.254:3000/docs](http://13.39.79.254:3000/docs)
+
+API can be tested directly through the interactive Swagger documentation interface.
+
 ## 📦 Features
 
 - Multi-label classification
