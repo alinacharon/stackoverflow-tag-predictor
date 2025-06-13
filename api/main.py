@@ -6,7 +6,6 @@ from nltk import pos_tag
 from bs4 import BeautifulSoup
 import nltk
 import tensorflow_hub as hub
-import numpy as np
 import joblib
 import re
 from contextlib import asynccontextmanager
@@ -100,8 +99,9 @@ def init_models():
 
         # Load USE model
         logger.info("Loading USE model from local path")
-        use_model_path = os.path.join(models_dir, 'use', '063d866c06683311b44b4992fd46003be952409c')
-        
+        use_model_path = os.path.join(
+            models_dir, 'use', '063d866c06683311b44b4992fd46003be952409c')
+
         logger.info(f"USE model path: {use_model_path}")
         logger.info(
             f"USE model directory exists: {os.path.exists(use_model_path)}")
